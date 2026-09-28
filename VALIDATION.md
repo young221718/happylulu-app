@@ -1,0 +1,64 @@
+# AfterSix 검증 기록
+
+2026-09-28, 로컬 Mac에서 확인했습니다.
+
+## 완료
+
+- 환경: Apple Silicon, macOS 27.0 (26A428), Swift 6.4 Command Line Tools.
+- `swift run --build-system native AfterSixChecks`: 18개 검사 통과.
+- `bash scripts/build-app.sh`: Release 앱 생성, ad-hoc 서명 및 서명 검증 통과.
+- `bash -n scripts/build-app.sh`, `plutil -lint Resources/Info.plist`, 소스 공백 검사 통과.
+- 앱 의존성 확인: 시스템 프레임워크와 Swift 라이브러리만 사용. 빌드 디렉터리의 별도 동적 라이브러리에 의존하지 않음.
+- `~/Applications/AfterSix.app`에 설치 및 실행.
+- 실제 UI 확인: 출근 대기 화면, 수동 입력된 출근·퇴근 및 카운트다운 화면, 24시간제 표시, 근무 8시간·휴게 1시간, 자동 실행 켜짐.
+- 앱 종료·업데이트·재실행 후 기존 수동 출근 기록 유지 확인. 테스트용 출근 시각을 실사용 저장 파일에 주입하지 않음.
+- 설치 앱의 `--status`에서 `SMAppService.mainApp.status == 1` (`enabled`) 확인.
+- 독립 GPT-6 Sol/xhigh 검토 수행. 지정 `reviewer` 역할의 고정 `biz/gpt-6-sol` 경로가 런타임에서 지원되지 않아, 사용 가능한 동일 Sol/xhigh 기본 역할로 읽기 전용 검토를 수행함. 자동 실행 최초 등록 실패 후 재시도 처리와 24시간 시각 표시를 수정한 뒤 재검토하여 차단 문제 없음 확인.
+
+## 검사 범위
+
+오전 6시 경계, 첫 해제만 기록, 새 날짜 전환, 근무+휴게 합산, 남은 분 올림 및 0 하한, 24시간 표시와 시간대, 수동 수정 보존, 미래·다른 날짜 거부, 수동 조기 출근, 쉬는 날 및 수동 복귀, 다음 날 자동 기록, 로컬 날짜, 일광절약시간의 경과시간 계산, 저장·복원 및 파일 권한, 출근 시각 임의 생성 방지, 손상 파일 원본 보존, 잘못된 근무 설정 거부, 미지원 스키마 거부.
+
+## 미검증
+
+- 실제 사용자의 화면 잠금·해제를 통해 `com.apple.screenIsUnlocked` 알림이 수신되는지.
+- 로그아웃·로그인 후 자동 실행과 재부팅 첫 로그인 동작. 등록 상태 확인은 이 검증을 대신하지 않음.
+- macOS 13~26 및 Intel 맥. 현재 산출물은 이 맥의 arm64용.
+- App Store 배포, Developer ID 공증, 다른 맥 배포.
+
+검증을 위해 사용자 맥을 강제로 잠그거나 재부팅하지 않았습니다. 실제 감지는 README의 잠금/해제 절차로 확인할 수 있습니다.
+
+## 해결한 개발 환경 제약
+
+XCTest가 설치되어 있지 않아 외부 설치 없이 실행하는 독립 검사 실행 파일을 사용했습니다. SDK 27의 `State` 매크로 플러그인 부재는 기존 SwiftUI 프로퍼티 래퍼를 타입 별칭으로 명시하여 해결했습니다. 기존 native 빌드 엔진의 향후 제거 경고는 남아 있으며, 현재 빌드와 실행은 완료했습니다.
+
+## HappyLulu 1.1.0 이름·아이콘 변경
+
+같은 날 사용자가 이름을 HappyLulu로 정하고 회사 동료용 아이콘 제작을 요청했습니다.
+
+- 앱 이름, 실행 파일, 팝업 헤더, 접근성 이름, 앱 아이콘과 메뉴바 심볼을 변경했습니다.
+- 근무시간 계산·알림 감지·저장 로직은 변경하지 않았습니다. 저장 경로와 번들 ID를 유지했습니다.
+- 내장 이미지 생성 도구로 원본 PNG를 생성하고 RGBA 투명 외곽을 확인했습니다. 원본은 `Resources/HappyLuluIcon.png`에 보관합니다.
+- `swift run --build-system native AfterSixChecks`: 18개 검사 통과.
+- `bash scripts/build-app.sh`: `dist/HappyLulu.app` 빌드와 ad-hoc 서명 검증 통과.
+- `bash -n scripts/build-app.sh`, `plutil -lint Resources/Info.plist` 통과.
+- `~/Applications/HappyLulu.app`로 설치했습니다. 기존 설치 앱은 당시 프로젝트의 `.build/branding-before/AfterSix.app`에 보존했습니다.
+- 기존 앱의 자동 실행 연결을 해제한 뒤 새 경로의 HappyLulu에서 다시 등록했습니다. 실제 UI와 설치 앱의 `--status`에서 켜짐/`enabled`를 확인했습니다. 실제 재로그인 시험은 수행하지 않았습니다.
+- 실제 팝업에서 새 이름·웃는 시계 아이콘·소개 문구와 기존 출근 기록을 확인했습니다.
+- 설치된 실행 파일·아이콘·Info.plist가 빌드 산출물과 바이트 단위로 일치합니다.
+- 교체 전후 출근 기록 파일의 SHA-256이 일치하여 데이터가 수정되지 않았음을 확인했습니다.
+- 새 범위는 외형·이름·패키징 변경이며, 앞선 독립 기능 검토를 새 버전 전체 검토로 표현하지 않습니다. 앞 절의 실제 잠금 해제 등 미검증 항목은 그대로 남아 있습니다.
+
+## happylulu-app 저장소 이관
+
+2026-09-28, Hive의 `dev/services/happylulu-app/develop/`에서 확인했습니다.
+
+- 기존 프로젝트의 소스·검사·아이콘·문서 16개 파일을 복사하고 원본과 바이트 일치를 확인했습니다.
+- 앱 동작 코드는 유지하고 개발 안내, 설치 방법, Git 제외 규칙을 정리했습니다.
+- 새 위치의 `swift run --build-system native AfterSixChecks`: 18개 검사 통과.
+- 새 위치의 `bash scripts/build-app.sh`: Release 빌드, 아이콘 패키징, ad-hoc 서명 검증 통과.
+- `bash -n scripts/build-app.sh`, `plutil -lint Resources/Info.plist` 통과.
+- Git 추적 대상은 소스·문서·원본 아이콘 17개 파일입니다. 1,125,213바이트의 원본 아이콘을 시각 확인했으며 앱 패키징 입력으로 포함합니다.
+- 빌드 결과, 캐시, 이전 앱 백업, 개인 출퇴근 기록은 이관하거나 Git에 포함하지 않았습니다.
+- 알려진 토큰·개인키 패턴 검사에서 후보 파일 내 일치 항목이 없었습니다. 이는 포괄적 보안 검토를 뜻하지 않습니다.
+- 이관 빌드로 설치 앱을 교체하지 않았으며 실제 잠금·재로그인 등 기존 미검증 항목은 유지합니다.
