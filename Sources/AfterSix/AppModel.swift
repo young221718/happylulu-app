@@ -18,9 +18,13 @@ final class AppModel: ObservableObject {
     var departure: Date? { arrival.map { Attendance.departure(for: $0, settings: state.settings) } }
     var isSkipped: Bool { state.suppressedDays.contains(Attendance.dayKey(now, calendar: calendar)) }
     var minutesLeft: Int? { departure.map { Attendance.remainingMinutes(until: $0, now: now) } }
+    var earlyLeaveMinutes: Int {
+        if let arrival { return Attendance.earlyLeaveMinutes(for: arrival) }
+        return Attendance.earlyLeaveMinutes(on: now, timeZone: calendar.timeZone)
+    }
     var progress: Double {
         guard let arrival, let departure else { return 0 }
-        return min(1, max(0, now.timeIntervalSince(arrival.time) / departure.timeIntervalSince(arrival.time)))
+        return Attendance.progress(from: arrival.time, until: departure, now: now)
     }
     var menuTitle: String {
         guard let minutesLeft else { return isSkipped ? "오늘 쉬는 날" : "출근 대기" }

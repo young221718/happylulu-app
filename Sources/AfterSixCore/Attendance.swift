@@ -90,8 +90,28 @@ public enum Attendance {
         state.suppressedDays.insert(day)
     }
 
+    public static func earlyLeaveMinutes(on date: Date, timeZone: TimeZone) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard calendar.component(.weekday, from: date) == 6,
+              let nextFriday = calendar.date(byAdding: .day, value: 7, to: date),
+              !calendar.isDate(date, equalTo: nextFriday, toGranularity: .month) else { return 0 }
+        return 120
+    }
+
+    public static func earlyLeaveMinutes(for arrival: Arrival) -> Int {
+        earlyLeaveMinutes(on: arrival.time, timeZone: TimeZone(identifier: arrival.timeZoneID) ?? .current)
+    }
+
     public static func departure(for arrival: Arrival, settings: WorkSettings) -> Date {
-        arrival.time.addingTimeInterval(TimeInterval(settings.workMinutes + settings.breakMinutes) * 60)
+        let minutes = max(0, settings.workMinutes + settings.breakMinutes - earlyLeaveMinutes(for: arrival))
+        return arrival.time.addingTimeInterval(TimeInterval(minutes) * 60)
+    }
+
+    public static func progress(from arrival: Date, until departure: Date, now: Date) -> Double {
+        let duration = departure.timeIntervalSince(arrival)
+        guard duration > 0 else { return now >= departure ? 1 : 0 }
+        return min(1, max(0, now.timeIntervalSince(arrival) / duration))
     }
 
     public static func remainingMinutes(until departure: Date, now: Date) -> Int {

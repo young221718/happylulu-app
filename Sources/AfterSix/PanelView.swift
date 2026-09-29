@@ -68,7 +68,7 @@ struct PanelView: View {
             if let minutes = model.minutesLeft {
                 Text(minutes == 0 ? "오늘도 수고했어요" : model.duration(minutes))
                     .font(.system(size: 29, weight: .semibold, design: .rounded)).monospacedDigit()
-                Text(minutes == 0 ? "설정한 근무시간을 채웠어요." : "퇴근까지 남았어요")
+                Text(minutes == 0 ? "오늘의 퇴근 시간이 됐어요." : "퇴근까지 남았어요")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 ProgressView(value: model.progress).padding(.top, 6)
             } else {
@@ -78,6 +78,10 @@ struct PanelView: View {
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 Text("이미 출근했다면 아래에서 시각을 입력해 주세요.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            if model.earlyLeaveMinutes > 0 && !model.isSkipped {
+                Label("마지막 금요일 · 2시간 조기 퇴근", systemImage: "sparkles")
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(accent)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,6 +162,8 @@ struct PanelView: View {
                 set: { model.updateSettings(work: model.state.settings.workMinutes, rest: $0) }
             ), in: 0...240, step: 15)
             Text("오늘 퇴근 예정에도 바로 반영됩니다. 잠금·절전 중에도 시간이 흘러갑니다.")
+                .font(.system(size: 10)).foregroundStyle(.secondary)
+            Text("매달 마지막 금요일에는 퇴근 예정이 2시간 빨라집니다.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
             Toggle("로그인 시 자동 실행", isOn: Binding(get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
                 .toggleStyle(.switch).controlSize(.mini)
