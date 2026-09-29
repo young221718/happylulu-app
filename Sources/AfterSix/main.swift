@@ -59,7 +59,8 @@ if CommandLine.arguments.contains("--status") {
     do {
         let state = try StateStore.standard.load()
         let record = Attendance.today(in: state, now: Date(), calendar: .current)
-        print("app=HappyLulu version=1.1.0")
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
+        print("app=HappyLulu version=\(version)")
         print("loginItemStatus=\(SMAppService.mainApp.status.rawValue)")
         print("todayRecorded=\(record != nil)")
         print("lastUnlockObserved=\(state.lastUnlockAt != nil)")

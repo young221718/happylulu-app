@@ -46,6 +46,81 @@ final class AttendanceTests {
         expectEqual(Attendance.remainingMinutes(until: departure, now: date("2026-09-28T15:12:00")), 155)
     }
 
+    func testLastFridayAcrossMonthLengthsAndYearEnd() {
+        for day in ["2026-09-25", "2026-10-30", "2024-02-23", "2025-02-28", "2027-12-31"] {
+            expectEqual(Attendance.earlyLeaveMinutes(on: date(day + "T09:00:00"), timeZone: calendar.timeZone), 120)
+        }
+        for day in ["2026-09-18", "2026-09-24", "2026-09-26", "2026-09-30", "2026-10-23", "2024-02-29", "2027-12-24", "2027-12-30"] {
+            expectEqual(Attendance.earlyLeaveMinutes(on: date(day + "T09:00:00"), timeZone: calendar.timeZone), 0)
+        }
+    }
+
+    func testLastFridayDepartureCountdownAndProgress() {
+        var state = AttendanceState()
+        let start = date("2026-10-30T09:00:00")
+        Attendance.recordUnlock(in: &state, at: start, calendar: calendar)
+        let end = Attendance.departure(for: state.arrivals["2026-10-30"]!, settings: state.settings)
+        expectEqual(end, date("2026-10-30T16:00:00"))
+        expectEqual(Attendance.remainingMinutes(until: end, now: date("2026-10-30T15:59:59")), 1)
+        expectEqual(Attendance.remainingMinutes(until: end, now: end), 0)
+        expectEqual(Attendance.remainingMinutes(until: end, now: date("2026-10-30T17:00:00")), 0)
+        expectEqual(Attendance.progress(from: start, until: end, now: date("2026-10-30T12:30:00")), 0.5)
+        expectEqual(Attendance.progress(from: start, until: end, now: start.addingTimeInterval(-1)), 0)
+        expectEqual(Attendance.progress(from: start, until: end, now: end.addingTimeInterval(1)), 1)
+    }
+
+    func testRegularFridayKeepsNormalDeparture() {
+        let start = date("2026-10-23T09:00:00")
+        let record = Arrival(day: "2026-10-23", time: start, source: .manual, timeZoneID: calendar.timeZone.identifier)
+        expectEqual(Attendance.departure(for: record, settings: WorkSettings()), date("2026-10-23T18:00:00"))
+    }
+
+    func testEarlyLeaveUsesRecordedTimeZone() {
+        // This instant is Friday in Seoul and Thursday in Los Angeles and UTC.
+        let instant = date("2026-10-30T08:30:00")
+        let seoul = Arrival(day: "2026-10-30", time: instant, source: .unlock, timeZoneID: "Asia/Seoul")
+        let losAngeles = Arrival(day: "2026-10-29", time: instant, source: .unlock, timeZoneID: "America/Los_Angeles")
+        expectEqual(Attendance.departure(for: seoul, settings: WorkSettings()).timeIntervalSince(instant), 7 * 3600)
+        expectEqual(Attendance.departure(for: losAngeles, settings: WorkSettings()).timeIntervalSince(instant), 9 * 3600)
+        expectEqual(Attendance.earlyLeaveMinutes(on: instant, timeZone: TimeZone(secondsFromGMT: 0)!), 0)
+        expectEqual(Attendance.earlyLeaveMinutes(on: date("2026-10-30T23:59:59"), timeZone: calendar.timeZone), 120)
+        expectEqual(Attendance.earlyLeaveMinutes(on: date("2026-10-31T00:00:00"), timeZone: calendar.timeZone), 0)
+    }
+
+    func testEarlyLeaveWithCustomSettingsAndShortDays() {
+        let start = date("2026-10-30T09:00:00")
+        let record = Arrival(day: "2026-10-30", time: start, source: .manual, timeZoneID: calendar.timeZone.identifier)
+        var settings = WorkSettings()
+        settings.workMinutes = 360
+        settings.breakMinutes = 30
+        expectEqual(Attendance.departure(for: record, settings: settings), date("2026-10-30T13:30:00"))
+        expectEqual(settings.workMinutes, 360)
+        expectEqual(settings.breakMinutes, 30)
+        settings.workMinutes = 60
+        for rest in [0, 60] {
+            settings.breakMinutes = rest
+            let end = Attendance.departure(for: record, settings: settings)
+            expectEqual(end, start)
+            expectEqual(Attendance.remainingMinutes(until: end, now: start), 0)
+            expectEqual(Attendance.progress(from: start, until: end, now: start), 1)
+            expectEqual(Attendance.progress(from: start, until: end, now: start.addingTimeInterval(-1)), 0)
+        }
+    }
+
+    func testEarlyLeaveManualArrivalPersistsWithoutSchemaChange() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("HappyLulu-friday-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = StateStore(url: folder.appendingPathComponent("state.json"))
+        var state = AttendanceState()
+        let now = date("2026-10-30T12:00:00")
+        try Attendance.setManual(in: &state, at: date("2026-10-30T08:30:00"), now: now, calendar: calendar)
+        try store.save(state)
+        let loaded = try store.load()
+        expectEqual(loaded.version, 1)
+        expectEqual(loaded, state)
+        expectEqual(Attendance.departure(for: loaded.arrivals["2026-10-30"]!, settings: loaded.settings), date("2026-10-30T15:30:00"))
+    }
+
     func testRemainingTimeCeilsAndClamps() {
         let end = date("2026-09-28T17:47:00")
         expectEqual(Attendance.remainingMinutes(until: end, now: end.addingTimeInterval(-1)), 1)
