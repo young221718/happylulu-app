@@ -21,3 +21,5 @@ dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj -c Release -r win-x6
 `HappyLulu-1.0.0-windows-x64.zip` includes the runtime. The smaller `HappyLulu-1.0.0-windows-x64-runtime-required.zip` requires the **.NET 10 Desktop Runtime x64** on the target PC. Extract either ZIP and run `HappyLulu.exe`. CI builds both ZIPs and checks that the runtime-required ZIP stays below 25 MiB.
 
 Core checks and a successful build do not prove real session unlock detection, tray display, startup after sign-in, or execution with an installed runtime. Verify these on Windows separately.
+
+[Windows release notes (Korean)](RELEASE-NOTES.md)

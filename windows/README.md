@@ -21,3 +21,5 @@ dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj -c Release -r win-x6
 `HappyLulu-1.0.0-windows-x64.zip`은 .NET 런타임을 포함한 포터블 배포본입니다. `HappyLulu-1.0.0-windows-x64-runtime-required.zip`은 **.NET 10 Desktop Runtime x64** 설치가 필요한 작은 포터블 배포본입니다. 두 배포본 모두 압축을 푼 뒤 `HappyLulu.exe`를 실행합니다. CI에서 두 ZIP을 만들고 작은 ZIP의 25 MiB 미만 크기를 확인합니다.
 
 코어 검사와 빌드 성공만으로 실제 Windows 잠금 해제, 알림 영역 표시, 로그인 후 자동 실행, 설치된 런타임의 동작은 확인되지 않습니다. 이 동작은 Windows 세션에서 별도로 검증해야 합니다.
+
+[Windows 릴리즈 노트](RELEASE-NOTES.md)

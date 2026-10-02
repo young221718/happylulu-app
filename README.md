@@ -8,7 +8,7 @@
 
 **현재 배포: 1.5.2 build 10 · macOS 13 이상 · Apple Silicon 권장**
 
-[소개·다운로드·설치](https://happylulu.cy-choi-lulu.chatgpt.site/) · [릴리즈 노트](RELEASE-NOTES.md) · [실제 내부 시험](https://github.com/young221718/happylulu-app/issues/4)
+[소개·다운로드·설치](https://happylulu.cy-choi-lulu.chatgpt.site/) · [Mac 릴리즈 노트](RELEASE-NOTES.md) · [Windows 릴리즈 노트](windows/RELEASE-NOTES.md) · [실제 내부 시험](https://github.com/young221718/happylulu-app/issues/4)
 
 ## Windows판
 

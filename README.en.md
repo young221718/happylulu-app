@@ -1,5 +1,7 @@
 # HappyLulu
 
+[Mac release notes (Korean)](RELEASE-NOTES.md) · [Windows release notes (Korean)](windows/RELEASE-NOTES.md)
+
 [한국어](README.md) · [Website](https://happylulu.cy-choi-lulu.chatgpt.site/en/)
 
 A small local attendance companion for LuluLab colleagues. Your first valid unlock records arrival; the menu bar or system tray shows when you can go home. This is not the company's official attendance or payroll system.
