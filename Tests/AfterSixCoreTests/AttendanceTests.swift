@@ -12,12 +12,18 @@ final class AttendanceTests {
         return formatter.date(from: text + "+09:00")!
     }
 
-    func testBeforeSixIsIgnoredAndExactSixAccepted() {
+    func testArrivalWindowsAndAutomaticMorningHalf() {
         var state = AttendanceState()
-        expectFalse(Attendance.recordUnlock(in: &state, at: date("2026-09-28T05:59:59"), calendar: calendar))
-        expectTrue(state.arrivals.isEmpty)
-        expectTrue(Attendance.recordUnlock(in: &state, at: date("2026-09-28T06:00:00"), calendar: calendar))
-        expectEqual(state.arrivals.count, 1)
+        for time in ["07:59:59", "10:01:00", "12:59:59", "15:01:00"] {
+            expectFalse(Attendance.recordUnlock(in: &state, at: date("2026-09-28T" + time), calendar: calendar))
+        }
+        expectTrue(Attendance.recordUnlock(in: &state, at: date("2026-09-28T08:00:00"), calendar: calendar))
+        expectEqual(state.arrivals["2026-09-28"]?.mode, .normal)
+        for time in ["10:00:59", "13:00:00", "15:00:59"] {
+            let mode = Attendance.automaticMode(at: date("2026-09-29T" + time), calendar: calendar)
+            expectEqual(mode, time.hasPrefix("10") ? .normal : .morningHalf)
+        }
+        expectEqual(Attendance.automaticMode(at: date("2026-09-29T15:01:00"), calendar: calendar), nil)
     }
 
     func testLaterUnlockDoesNotReplaceFirstArrival() {
@@ -154,20 +160,23 @@ final class AttendanceTests {
         expectEqual(state, original)
     }
 
-    func testManualEarlyStartIsAllowed() throws {
+    func testManualOutsideArrivalWindowIsRejected() throws {
         var state = AttendanceState()
-        try Attendance.setManual(in: &state, at: date("2026-09-28T05:30:00"), now: date("2026-09-28T12:00:00"), calendar: calendar)
-        expectNotNil(state.arrivals["2026-09-28"])
+        let now = date("2026-09-28T16:00:00")
+        for time in ["05:30:00", "10:01:00", "12:59:00", "15:01:00"] {
+            expectThrows(try Attendance.setManual(in: &state, at: date("2026-09-28T" + time), now: now, calendar: calendar))
+        }
+        expectTrue(state.arrivals.isEmpty)
     }
 
     func testDayOffSuppressesLaterUnlockAndManualResumes() throws {
         var state = AttendanceState()
         let now = date("2026-09-28T12:00:00")
-        Attendance.recordUnlock(in: &state, at: now, calendar: calendar)
+        Attendance.recordUnlock(in: &state, at: date("2026-09-28T09:00:00"), calendar: calendar)
         Attendance.skipToday(in: &state, now: now, calendar: calendar)
         expectFalse(Attendance.recordUnlock(in: &state, at: now, calendar: calendar))
         expectNil(state.arrivals["2026-09-28"])
-        try Attendance.setManual(in: &state, at: now, now: now, calendar: calendar)
+        try Attendance.setManual(in: &state, at: date("2026-09-28T09:00:00"), now: now, calendar: calendar)
         expectNotNil(state.arrivals["2026-09-28"])
         expectFalse(state.suppressedDays.contains("2026-09-28"))
     }
@@ -180,7 +189,7 @@ final class AttendanceTests {
 
     func testLocalDayDoesNotUseUTCDate() {
         var state = AttendanceState()
-        Attendance.recordUnlock(in: &state, at: date("2026-09-28T06:00:00"), calendar: calendar)
+        Attendance.recordUnlock(in: &state, at: date("2026-09-28T08:00:00"), calendar: calendar)
         expectNotNil(state.arrivals["2026-09-28"])
         expectNil(state.arrivals["2026-09-27"])
     }
@@ -245,5 +254,92 @@ final class AttendanceTests {
         state.version = 99
         try JSONEncoder().encode(state).write(to: url)
         expectThrows(try StateStore(url: url).load())
+    }
+
+    func testCalendarAndManualModePrecedence() throws {
+        var state = AttendanceState()
+        let atNine = date("2026-09-28T09:00:00")
+        expectFalse(Attendance.recordUnlock(in: &state, at: atNine, calendar: calendar,
+                                            calendarMode: .morningHalf))
+        expectTrue(Attendance.recordUnlock(in: &state, at: atNine, calendar: calendar,
+                                           calendarMode: .afternoonHalf))
+        expectEqual(state.arrivals["2026-09-28"]?.mode, .afternoonHalf)
+        expectEqual(Attendance.departure(for: state.arrivals["2026-09-28"]!, settings: state.settings),
+                    date("2026-09-28T13:00:00"))
+        let now = date("2026-09-28T16:00:00")
+        try Attendance.setManual(in: &state, at: atNine, now: now, calendar: calendar,
+                                 selectedMode: .normal, calendarMode: .afternoonHalf)
+        expectEqual(state.arrivals["2026-09-28"]?.mode, .normal)
+        expectEqual(state.arrivals["2026-09-28"]?.modeSource, .manual)
+        expectFalse(Attendance.refreshAutomaticMode(in: &state, now: now, calendar: calendar,
+                                                    calendarMode: .afternoonHalf))
+        expectEqual(Attendance.departure(for: state.arrivals["2026-09-28"]!, settings: state.settings),
+                    date("2026-09-28T18:00:00"))
+        try Attendance.setManual(in: &state, at: atNine, now: now, calendar: calendar,
+                                 selectedMode: .afternoonHalf)
+        expectEqual(Attendance.departure(for: state.arrivals["2026-09-28"]!, settings: state.settings),
+                    date("2026-09-28T13:00:00"))
+    }
+
+    func testMorningHalfAndLastFridayDoNotStack() throws {
+        var state = AttendanceState()
+        let now = date("2026-10-30T16:00:00")
+        try Attendance.setManual(in: &state, at: date("2026-10-30T13:00:00"), now: now,
+                                 calendar: calendar)
+        expectEqual(state.arrivals["2026-10-30"]?.mode, .morningHalf)
+        expectEqual(Attendance.departure(for: state.arrivals["2026-10-30"]!, settings: state.settings),
+                    date("2026-10-30T17:00:00"))
+        try Attendance.setManual(in: &state, at: date("2026-10-30T09:00:00"), now: now,
+                                 calendar: calendar, selectedMode: .afternoonHalf)
+        expectEqual(Attendance.departure(for: state.arrivals["2026-10-30"]!, settings: state.settings),
+                    date("2026-10-30T13:00:00"))
+    }
+
+    func testCalendarModeRefreshOnlyChangesAutomaticChoice() throws {
+        var state = AttendanceState()
+        let start = date("2026-09-28T09:00:00")
+        Attendance.recordUnlock(in: &state, at: start, calendar: calendar)
+        expectTrue(Attendance.refreshAutomaticMode(in: &state, now: start, calendar: calendar,
+                                                   calendarMode: .afternoonHalf))
+        expectEqual(state.arrivals["2026-09-28"]?.mode, .afternoonHalf)
+        expectTrue(Attendance.refreshAutomaticMode(in: &state, now: start, calendar: calendar,
+                                                   calendarMode: .morningHalf))
+        expectEqual(state.arrivals["2026-09-28"]?.mode, .normal)
+        expectEqual(Attendance.departure(for: state.arrivals["2026-09-28"]!, settings: state.settings),
+                    date("2026-09-28T18:00:00"))
+        expectFalse(Attendance.refreshAutomaticMode(in: &state, now: start, calendar: calendar,
+                                                    calendarMode: nil))
+        expectEqual(CalendarModeObservation.confirmed(nil).resolved(previous: .afternoonHalf), nil)
+        expectEqual(CalendarModeObservation.unavailable.resolved(previous: .afternoonHalf), .afternoonHalf)
+    }
+
+    func testLegacyStateDecodesWithoutHalfDayFields() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("HappyLulu-legacy-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = StateStore(url: folder.appendingPathComponent("state.json"))
+        var state = AttendanceState()
+        Attendance.recordUnlock(in: &state, at: date("2026-09-28T09:00:00"), calendar: calendar)
+        var raw = try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as! [String: Any]
+        raw.removeValue(forKey: "detectHalfDaysFromCalendar")
+        var arrivals = raw["arrivals"] as! [String: [String: Any]]
+        arrivals["2026-09-28"]?.removeValue(forKey: "mode")
+        arrivals["2026-09-28"]?.removeValue(forKey: "modeSource")
+        raw["arrivals"] = arrivals
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try JSONSerialization.data(withJSONObject: raw).write(to: store.url)
+        let loaded = try store.load()
+        expectEqual(loaded.arrivals["2026-09-28"]?.mode, .normal)
+        expectEqual(loaded.arrivals["2026-09-28"]?.modeSource, .legacy)
+        expectFalse(loaded.detectHalfDaysFromCalendar)
+        try store.save(loaded)
+        try expectEqual(try store.load(), loaded)
+    }
+
+    func testCalendarTitleRecognitionRejectsAmbiguity() {
+        expectEqual(HalfDayRecognition.mode(from: ["오전 반차"]), .morningHalf)
+        expectEqual(HalfDayRecognition.mode(from: ["반차(오후)"]), .afternoonHalf)
+        expectEqual(HalfDayRecognition.mode(from: ["반차"]), nil)
+        expectEqual(HalfDayRecognition.mode(from: ["오전 반차", "오후 반차"]), nil)
+        expectEqual(HalfDayRecognition.mode(from: ["오전 반차 취소"]), nil)
     }
 }

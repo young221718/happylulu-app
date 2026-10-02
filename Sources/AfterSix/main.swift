@@ -1,14 +1,19 @@
 import AppKit
 import SwiftUI
 import Combine
+import EventKit
 import ServiceManagement
 import AfterSixCore
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
     private let model = AppModel()
+    private let calendarSync = CalendarSyncModel()
+    private let updater = AppUpdater()
+    private var calendarWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     private var observation: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -21,21 +26,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.action = #selector(togglePanel)
         }
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 364, height: 570)
-        popover.contentViewController = NSHostingController(rootView: PanelView(model: model))
+        popover.contentSize = NSSize(width: 364, height: 470)
+        popover.contentViewController = NSHostingController(rootView: PanelView(model: model, onOpenSettings: { [weak self] in
+            self?.openSettings()
+        }))
         observation = model.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in self?.updateTitle() }
         }
         let firstLaunch = !model.state.didOfferLoginItem
         model.start()
+        calendarSync.start()
+        updater.start()
         updateTitle()
         if firstLaunch { togglePanel() }
+        if CommandLine.arguments.contains("--calendar") { openCalendarSync() }
     }
 
     private func updateTitle() {
         statusItem.button?.title = " " + model.menuTitle
         statusItem.button?.toolTip = model.departure.map { "출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))" }
-            ?? "HappyLulu · 오전 6시 이후 첫 잠금 해제를 기다립니다"
+            ?? "HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 잠금 해제를 기다립니다"
         statusItem.button?.setAccessibilityLabel("HappyLulu, \(model.menuTitle)")
     }
 
@@ -48,9 +58,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController?.view.window?.makeKey()
     }
 
+    private func openCalendarSync() {
+        if popover.isShown { popover.performClose(nil) }
+        NSApplication.shared.setActivationPolicy(.regular)
+        if calendarWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 760),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                  backing: .buffered, defer: false)
+            window.title = "HappyLulu Calendar"
+            window.delegate = self
+            window.isReleasedWhenClosed = false
+            window.contentViewController = NSHostingController(rootView: CalendarSyncSettingsView(model: calendarSync))
+            window.center()
+            calendarWindow = window
+        }
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        calendarWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func openSettings() {
+        if popover.isShown { popover.performClose(nil) }
+        NSApplication.shared.setActivationPolicy(.regular)
+        if settingsWindow == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 700),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                                  backing: .buffered, defer: false)
+            window.title = "HappyLulu 설정"
+            window.delegate = self
+            window.isReleasedWhenClosed = false
+            window.contentViewController = NSHostingController(rootView: SettingsView(
+                model: model, updater: updater, onOpenCalendarSync: { [weak self] in
+                    self?.openCalendarSync()
+                }))
+            window.center()
+            settingsWindow = window
+        }
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !popover.isShown { togglePanel() }
+        openSettings()
         return true
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow,
+              closingWindow === calendarWindow || closingWindow === settingsWindow else { return }
+        DispatchQueue.main.async { [weak self] in
+            if self?.calendarWindow?.isVisible != true && self?.settingsWindow?.isVisible != true {
+                NSApplication.shared.setActivationPolicy(.accessory)
+            }
+        }
     }
 }
 
@@ -62,6 +121,13 @@ if CommandLine.arguments.contains("--status") {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
         print("app=HappyLulu version=\(version)")
         print("loginItemStatus=\(SMAppService.mainApp.status.rawValue)")
+        print("calendarAccessStatus=\(EKEventStore.authorizationStatus(for: .event).rawValue)")
+        let info = Bundle.main.infoDictionary ?? [:]
+        let feed = (info["SUFeedURL"] as? String).flatMap(URL.init(string:))
+        let publicKey = (info["SUPublicEDKey"] as? String).flatMap { Data(base64Encoded: $0) }
+        print("updaterConfigured=\(feed?.scheme == "https" && publicKey?.count == 32)")
+        print("updaterAutomaticChecksDefault=\(info["SUEnableAutomaticChecks"] as? Bool ?? false)")
+        print("updaterAutomaticInstallationDefault=\(info["SUAutomaticallyUpdate"] as? Bool ?? false)")
         print("todayRecorded=\(record != nil)")
         print("lastUnlockObserved=\(state.lastUnlockAt != nil)")
         print("workMinutes=\(state.settings.workMinutes) breakMinutes=\(state.settings.breakMinutes)")

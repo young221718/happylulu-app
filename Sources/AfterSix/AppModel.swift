@@ -9,9 +9,17 @@ final class AppModel: ObservableObject {
     @Published private(set) var now = Date()
     @Published var errorMessage: String?
     @Published private(set) var loginStatus = SMAppService.mainApp.status
+    @Published private(set) var calendarHalfDayMode: WorkdayMode?
+    @Published private(set) var calendarHalfDayMessage: String?
     let store: StateStore
     private var writable = true
     private var timer: Timer?
+    private let halfDayCalendar = HalfDayCalendarReader()
+    private var calendarModeDay: String?
+    private var lastCalendarCheckAt: Date?
+    private var pendingUnlocks: [Date] = []
+    private var processingUnlocks = false
+    private var calendarDetectionRequestGeneration = 0
 
     var calendar: Calendar { Calendar.current }
     var arrival: Arrival? { Attendance.today(in: state, now: now, calendar: calendar) }
@@ -19,8 +27,11 @@ final class AppModel: ObservableObject {
     var isSkipped: Bool { state.suppressedDays.contains(Attendance.dayKey(now, calendar: calendar)) }
     var minutesLeft: Int? { departure.map { Attendance.remainingMinutes(until: $0, now: now) } }
     var earlyLeaveMinutes: Int {
-        if let arrival { return Attendance.earlyLeaveMinutes(for: arrival) }
+        if let arrival { return arrival.mode == .normal ? Attendance.earlyLeaveMinutes(for: arrival) : 0 }
         return Attendance.earlyLeaveMinutes(on: now, timeZone: calendar.timeZone)
+    }
+    var detectedModeToday: WorkdayMode? {
+        calendarModeDay == Attendance.dayKey(now, calendar: calendar) ? calendarHalfDayMode : nil
     }
     var progress: Double {
         guard let arrival, let departure else { return 0 }
@@ -66,6 +77,7 @@ final class AppModel: ObservableObject {
             Task { @MainActor in self?.refresh() }
         }
         if let timer { RunLoop.main.add(timer, forMode: .common) }
+        if state.detectHalfDaysFromCalendar { Task { await refreshCalendarHalfDay(force: true) } }
         // Register once; never fight a user's later System Settings choice.
         if writable, !state.didOfferLoginItem {
             setLoginEnabled(true)
@@ -75,6 +87,10 @@ final class AppModel: ObservableObject {
     func refresh() {
         now = Date()
         loginStatus = SMAppService.mainApp.status
+        if state.detectHalfDaysFromCalendar,
+           lastCalendarCheckAt.map({ now.timeIntervalSince($0) >= 300 }) ?? true {
+            Task { await refreshCalendarHalfDay() }
+        }
     }
 
     @objc private func woke(_ notification: Notification) { refresh() }
@@ -82,9 +98,39 @@ final class AppModel: ObservableObject {
     @objc private func screenUnlocked(_ notification: Notification) {
         let receivedAt = Date()
         now = receivedAt
-        commit { state in
-            Attendance.recordUnlock(in: &state, at: receivedAt, calendar: calendar)
+        pendingUnlocks.append(receivedAt)
+        guard !processingUnlocks else { return }
+        processingUnlocks = true
+        Task { await processPendingUnlocks() }
+    }
+
+    private func processPendingUnlocks() async {
+        while !pendingUnlocks.isEmpty {
+            let receivedAt = pendingUnlocks.removeFirst()
+            var observation = CalendarModeObservation.confirmed(nil)
+            if state.detectHalfDaysFromCalendar {
+                do {
+                    observation = .confirmed(try await halfDayCalendar.detect(on: receivedAt,
+                                                                              timeZone: calendar.timeZone))
+                } catch {
+                    observation = .unavailable
+                    calendarHalfDayMessage = error.localizedDescription
+                }
+            }
+            // A setting change while EventKit was pending takes effect before
+            // this arrival is saved; FIFO keeps the first observed unlock first.
+            let detected = state.detectHalfDaysFromCalendar
+                ? observation.resolved(previous: detectedModeToday) : nil
+            commit { state in
+                Attendance.recordUnlock(in: &state, at: receivedAt, calendar: calendar,
+                                        calendarMode: detected)
+            }
+            if state.detectHalfDaysFromCalendar, case let .confirmed(mode) = observation {
+                lastCalendarCheckAt = receivedAt
+                applyCalendarHalfDay(mode, checkedAt: receivedAt)
+            }
         }
+        processingUnlocks = false
     }
 
     @discardableResult
@@ -104,9 +150,83 @@ final class AppModel: ObservableObject {
     }
 
     @discardableResult
-    func saveManual(_ date: Date) -> Bool {
+    func saveManual(_ date: Date, selectedMode: WorkdayMode?) -> Bool {
         refresh()
-        return commit { try Attendance.setManual(in: &$0, at: date, now: now, calendar: calendar) }
+        return commit {
+            try Attendance.setManual(in: &$0, at: date, now: now, calendar: calendar,
+                                     selectedMode: selectedMode, calendarMode: detectedModeToday)
+        }
+    }
+
+    func setCalendarHalfDayDetection(_ enabled: Bool) {
+        calendarDetectionRequestGeneration += 1
+        let requestGeneration = calendarDetectionRequestGeneration
+        if !enabled {
+            guard commit({ $0.detectHalfDaysFromCalendar = false }) else { return }
+            calendarHalfDayMode = nil
+            calendarModeDay = nil
+            calendarHalfDayMessage = nil
+            var updated = state
+            if Attendance.refreshAutomaticMode(in: &updated, now: now, calendar: calendar,
+                                                calendarMode: nil) {
+                commit { $0 = updated }
+            }
+            return
+        }
+        Task {
+            do {
+                try await halfDayCalendar.requestAccess()
+                guard requestGeneration == calendarDetectionRequestGeneration else { return }
+                guard commit({ $0.detectHalfDaysFromCalendar = true }) else { return }
+                await refreshCalendarHalfDay(force: true)
+            } catch {
+                if requestGeneration == calendarDetectionRequestGeneration {
+                    calendarHalfDayMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    func checkCalendarHalfDayNow() { Task { await refreshCalendarHalfDay(force: true) } }
+
+    private func refreshCalendarHalfDay(force: Bool = false) async {
+        guard state.detectHalfDaysFromCalendar else { return }
+        let checkedAt = Date()
+        if !force, let lastCalendarCheckAt, checkedAt.timeIntervalSince(lastCalendarCheckAt) < 300 { return }
+        lastCalendarCheckAt = checkedAt
+        do {
+            let mode = try await halfDayCalendar.detect(on: checkedAt, timeZone: calendar.timeZone)
+            guard state.detectHalfDaysFromCalendar else { return }
+            applyCalendarHalfDay(mode, checkedAt: checkedAt)
+        } catch {
+            // A failed read is not evidence that the calendar event disappeared.
+            // Keep the last successful result until a confirmed fresh read.
+            calendarHalfDayMessage = error.localizedDescription
+        }
+    }
+
+    private func applyCalendarHalfDay(_ mode: WorkdayMode?, checkedAt: Date) {
+        let day = Attendance.dayKey(checkedAt, calendar: calendar)
+        guard day == Attendance.dayKey(Date(), calendar: calendar) else { return }
+        calendarModeDay = day
+        calendarHalfDayMode = mode
+        let conflictsWithRecordedTime = mode.flatMap { selected in
+            state.arrivals[day].map { arrival in
+                arrival.modeSource == .automatic &&
+                    !Attendance.isAllowed(arrival.time, for: selected, calendar: calendar)
+            }
+        } ?? false
+        if conflictsWithRecordedTime {
+            calendarHalfDayMessage = "캘린더 반차와 기록된 출근 시각이 맞지 않아 출근 시각으로 다시 판단했어요. 필요하면 근무 유형을 직접 지정해 주세요."
+        } else {
+            calendarHalfDayMessage = mode.map { "캘린더에서 \($0.label)를 인식했어요." }
+                ?? "명확한 오전·오후 반차 일정이 없어요. 출근 시각으로 판단합니다."
+        }
+        var updated = state
+        if Attendance.refreshAutomaticMode(in: &updated, now: checkedAt,
+                                            calendar: calendar, calendarMode: mode) {
+            commit { $0 = updated }
+        }
     }
 
     func skipToday() {

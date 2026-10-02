@@ -7,10 +7,24 @@
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleDisplayName</key><string>HappyLulu</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.2.0</string>
-    <key>CFBundleVersion</key><string>3</string>
+    <key>CFBundleShortVersionString</key><string>1.5.1</string>
+    <key>CFBundleVersion</key><string>9</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>NSCalendarsUsageDescription</key><string>허용한 일정 제목에서 오전·오후 반차를 인식하고, 별도로 선택한 다우오피스·Google 캘린더를 동기화합니다.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>허용한 일정 제목에서 오전·오후 반차를 인식하고, 별도로 선택한 다우오피스·Google 캘린더를 동기화합니다.</string>
     <key>CFBundleDevelopmentRegion</key><string>ko</string>
+    <key>SUFeedURL</key><string>https://happylulu.cy-choi413364.chatgpt.site/updates/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>iUYqznysscBintQYTCAIeax/QbptNaI9lLcN4I6iUqM=</string>
+    <key>SUEnableAutomaticChecks</key><false/>
+    <key>SUAutomaticallyUpdate</key><false/>
+    <key>SUAllowsAutomaticUpdates</key><false/>
+    <key>HappyLuluUpdateServiceEnabled</key><false/>
+    <key>SUScheduledCheckInterval</key><integer>3600</integer>
+    <key>SUScheduledImpatientCheckInterval</key><integer>86400</integer>
+    <key>SUEnableSystemProfiling</key><false/>
+    <key>SUVerifyUpdateBeforeExtraction</key><true/>
+    <key>SURequireSignedFeed</key><true/>
+    <key>SUSignedFeedFailureExpirationInterval</key><integer>0</integer>
 </dict></plist>

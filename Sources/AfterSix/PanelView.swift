@@ -1,43 +1,82 @@
 import SwiftUI
-import ServiceManagement
 import AfterSixCore
 
 // The explicit type alias selects the macOS 13-compatible property wrapper,
 // avoiding the SDK 27 State macro that requires an Xcode-only compiler plugin.
 private typealias LocalState<Value> = SwiftUI.State<Value>
 
+private enum ManualModeChoice: String, CaseIterable {
+    case automatic, normal, morningHalf, afternoonHalf
+
+    var label: String {
+        switch self {
+        case .automatic: "자동 판단"
+        case .normal: "일반 근무"
+        case .morningHalf: "오전 반차"
+        case .afternoonHalf: "오후 반차"
+        }
+    }
+
+    var selectedMode: WorkdayMode? {
+        switch self {
+        case .automatic: nil
+        case .normal: .normal
+        case .morningHalf: .morningHalf
+        case .afternoonHalf: .afternoonHalf
+        }
+    }
+
+    static func from(_ mode: WorkdayMode) -> Self {
+        switch mode {
+        case .normal: .normal
+        case .morningHalf: .morningHalf
+        case .afternoonHalf: .afternoonHalf
+        }
+    }
+}
+
 struct PanelView: View {
     @ObservedObject var model: AppModel
+    let onOpenSettings: () -> Void
     @LocalState private var editing = false
     @LocalState private var editTime = Date()
+    @LocalState private var editMode = ManualModeChoice.automatic
     @LocalState private var editDay = ""
-    @LocalState private var settingsVisible = false
-    @LocalState private var historyVisible = false
     @LocalState private var confirmSkip = false
     private let accent = Color(red: 0.16, green: 0.48, blue: 0.42)
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 19) {
-                header
-                summary
-                timeCards
-                actions
-                if editing { editor }
-                if let error = model.errorMessage {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 19) {
+                    header
+                    summary
+                    timeCards
+                    actions
+                    if editing { editor }
+                    if let error = model.errorMessage {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                    }
+                    lastUnlockStatus
                 }
-                Divider()
-                DisclosureGroup("근무시간 및 자동 실행", isExpanded: $settingsVisible) { settings }
-                    .font(.system(size: 12, weight: .medium))
-                DisclosureGroup("최근 출근 기록", isExpanded: $historyVisible) { history }
-                    .font(.system(size: 12, weight: .medium))
-                footer
+                .padding(20)
             }
-            .padding(22)
+            Divider()
+            HStack {
+                Button { onOpenSettings() } label: {
+                    Label("설정", systemImage: "gearshape")
+                }
+                Spacer()
+                Button("종료") { NSApplication.shared.terminate(nil) }
+            }
+            .buttonStyle(.borderless)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
         }
-        .frame(width: 364, height: 570)
+        .frame(width: 364, height: 470)
         .tint(accent)
         .onAppear { model.refresh() }
         .confirmationDialog("오늘 출근 기록을 지우고 자동 기록을 쉬겠어요?", isPresented: $confirmSkip) {
@@ -74,10 +113,16 @@ struct PanelView: View {
             } else {
                 Text(model.isSkipped ? "오늘은 쉬어가요" : "출근 기록 대기")
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
-                Text(model.isSkipped ? "오늘 자동 기록을 쉬고 있어요." : "오전 6시 이후 첫 잠금 해제를 기다려요.")
+                Text(model.isSkipped ? "오늘 자동 기록을 쉬고 있어요." : "일반·오후 반차 08:00~10:00, 오전 반차 13:00~15:00")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 Text("이미 출근했다면 아래에서 시각을 입력해 주세요.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            if let arrival = model.arrival {
+                let reason = arrival.modeSource == .manual ? "직접 지정" :
+                    (model.detectedModeToday == arrival.mode && arrival.mode != .normal ? "캘린더 인식" : "출근 시각 자동 인식")
+                Label("\(arrival.mode.label) · \(reason)", systemImage: "calendar.badge.clock")
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(accent)
             }
             if model.earlyLeaveMinutes > 0 && !model.isSkipped {
                 Label("마지막 금요일 · 2시간 조기 퇴근", systemImage: "sparkles")
@@ -94,7 +139,10 @@ struct PanelView: View {
             timeCard("출근", time: model.arrival.map { model.timeLabel($0.time) } ?? "—",
                      note: model.arrival.map { $0.source == .unlock ? "잠금 해제 감지" : "직접 입력" } ?? "아직 기록 없음")
             timeCard("퇴근 예정", time: model.departure.map { model.timeLabel($0) } ?? "—",
-                     note: model.departure.map { model.calendar.isDate($0, inSameDayAs: model.now) ? "휴게시간 포함" : "다음 날 · 휴게 포함" } ?? "출근 후 계산")
+                     note: model.departure.map {
+                         if model.arrival?.mode != .normal { return "반차 · 휴게 없이 4시간" }
+                         return model.calendar.isDate($0, inSameDayAs: model.now) ? "휴게시간 포함" : "다음 날 · 휴게 포함"
+                     } ?? "출근 후 계산")
         }
     }
 
@@ -113,6 +161,8 @@ struct PanelView: View {
             Button {
                 model.refresh()
                 editTime = model.arrival?.time ?? model.now
+                editMode = model.arrival?.modeSource == .manual
+                    ? ManualModeChoice.from(model.arrival!.mode) : .automatic
                 editDay = Attendance.dayKey(model.now, calendar: model.calendar)
                 editing.toggle()
             } label: { Label(model.arrival == nil ? "출근 시각 입력" : "출근 시각 수정", systemImage: "pencil") }
@@ -126,6 +176,11 @@ struct PanelView: View {
 
     private var editor: some View {
         VStack(alignment: .leading, spacing: 8) {
+            Picker("근무 유형", selection: $editMode) {
+                ForEach(ManualModeChoice.allCases, id: \.self) { choice in
+                    Text(choice.label).tag(choice)
+                }
+            }.pickerStyle(.menu)
             HStack {
                 DatePicker("오늘 출근", selection: $editTime, displayedComponents: [.hourAndMinute])
                     .datePickerStyle(.field).labelsHidden()
@@ -140,70 +195,21 @@ struct PanelView: View {
                     }
                     let components = model.calendar.dateComponents([.hour, .minute], from: editTime)
                     let start = model.calendar.startOfDay(for: model.now)
-                    if let date = model.calendar.date(bySettingHour: components.hour!, minute: components.minute!, second: 0, of: start), model.saveManual(date) {
+                    if let date = model.calendar.date(bySettingHour: components.hour!, minute: components.minute!, second: 0, of: start),
+                       model.saveManual(date, selectedMode: editMode.selectedMode) {
                         editing = false
                     }
                 }.controlSize(.small).buttonStyle(.borderedProminent)
             }
-            Text("오늘 시각만 수정할 수 있으며, 미래 시각은 저장하지 않아요.")
+            Text("일반·오후 반차 08:00~10:00, 오전 반차 13:00~15:00. 미래 시각은 저장하지 않아요.")
                 .font(.system(size: 10)).foregroundStyle(.secondary)
         }
         .padding(12).background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
     }
 
-    private var settings: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Stepper("근무  \(model.duration(model.state.settings.workMinutes))", value: Binding(
-                get: { model.state.settings.workMinutes },
-                set: { model.updateSettings(work: $0, rest: model.state.settings.breakMinutes) }
-            ), in: 60...960, step: 30)
-            Stepper("휴게  \(model.duration(model.state.settings.breakMinutes))", value: Binding(
-                get: { model.state.settings.breakMinutes },
-                set: { model.updateSettings(work: model.state.settings.workMinutes, rest: $0) }
-            ), in: 0...240, step: 15)
-            Text("오늘 퇴근 예정에도 바로 반영됩니다. 잠금·절전 중에도 시간이 흘러갑니다.")
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-            Text("매달 마지막 금요일에는 퇴근 예정이 2시간 빨라집니다.")
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-            Toggle("로그인 시 자동 실행", isOn: Binding(get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
-                .toggleStyle(.switch).controlSize(.mini)
-            Text(model.loginDescription).font(.system(size: 10)).foregroundStyle(.secondary)
-            if model.loginStatus == .requiresApproval {
-                Button("시스템 설정에서 허용") { SMAppService.openSystemSettingsLoginItems() }
-            }
-        }
-        .font(.system(size: 11)).padding(.top, 12)
-    }
-
-    private var history: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            let records = model.state.arrivals.values.sorted { $0.day > $1.day }.prefix(7)
-            if records.isEmpty {
-                Text("아직 저장된 출근 기록이 없어요.").foregroundStyle(.secondary)
-            }
-            ForEach(Array(records), id: \.day) { record in
-                HStack {
-                    Text(record.day)
-                    Spacer()
-                    Text(Attendance.clockLabel(record.time, timeZone: TimeZone(identifier: record.timeZoneID) ?? .current)).monospacedDigit()
-                    Image(systemName: record.source == .unlock ? "lock.open" : "pencil").foregroundStyle(.secondary)
-                }
-            }
-        }
-        .font(.system(size: 11)).padding(.top, 10)
-    }
-
-    private var footer: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(model.state.lastUnlockAt.map { "최근 잠금 해제 감지 · \($0.formatted(.dateTime.month().day().hour().minute()))" }
-                 ?? "잠금 해제 감지 대기 중 · 매일 오전 6시부터")
-                .font(.system(size: 10)).foregroundStyle(.tertiary)
-            HStack {
-                Button("기록 폴더") { model.showData() }
-                Spacer()
-                Button("종료") { NSApplication.shared.terminate(nil) }
-            }
-            .buttonStyle(.borderless).font(.system(size: 11)).foregroundStyle(.secondary)
-        }
+    private var lastUnlockStatus: some View {
+        Text(model.state.lastUnlockAt.map { "최근 잠금 해제 감지 · \($0.formatted(.dateTime.month().day().hour().minute()))" }
+             ?? "잠금 해제 감지 대기 중 · 일반 08~10시, 오전 반차 13~15시")
+            .font(.system(size: 10)).foregroundStyle(.tertiary)
     }
 }

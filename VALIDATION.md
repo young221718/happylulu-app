@@ -78,3 +78,30 @@ XCTest가 설치되어 있지 않아 외부 설치 없이 실행하는 독립 �
 - 기존 독립 Sol/xhigh 검토자가 이번 변경을 읽기 전용으로 검토했으며, 새로운 정확성·회귀 결함은 발견하지 않았습니다. 시간대 변경으로 날짜가 바뀌면 현재 로컬 날짜의 기록으로 전환하는 기존 동작은 README에 명시했습니다.
 - 실제 마지막 금요일 UI 표시, 설치 앱 교체, 로그아웃·로그인·잠금 해제 시험은 이번 범위에서 수행하지 않았습니다. 기존 실제 기기 검증 제한은 유지합니다.
 - Command Line Tools의 `--build-system native` 향후 제거 경고는 남아 있습니다.
+
+## HappyLulu 1.5.1 기능 통합과 별도 설정 창
+
+2026-10-02, Terra의 `app/mac/happylulu-app/worktrees/updates-1-5-1/`에서 확인했다.
+GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 설정 UI를 추적한다.
+
+- 출퇴근 29개, 캘린더 코어 20개, 서비스 35개 검사 통과.
+- 메뉴바에는 오늘 상태·출근 수정·반차·쉬는 날과 설정 열기만 두고, 지속 설정과 최근 기록을 별도 창으로 옮겼다.
+- Universal arm64·x86_64 앱 빌드와 ad-hoc 서명 검증 통과. ZIP 추출 및 읽기 전용 DMG 안의 앱 파일을 원본과 SHA256으로 대조하고 서명을 재검증했다.
+- Intel 링크에서 Swift compatibility packs의 x86_64 부재 경고가 있었다. 빌드는 완료됐지만 Intel 실기기 실행은 사용자 결정으로 후속이다.
+- Swift native 빌드 엔진과 hdiutil create 옵션의 향후 제거 경고가 남아 있다.
+- plist·패키징 스크립트 문법·diff 공백 확인 통과.
+- UI fixture는 별도 임시 StateStore를 사용하며 사용자 출근 기록을 읽지 않고, 자동 실행 등록·캘린더·updater를 시작하지 않는다. 화면 배치 확인과 실제 앱의 창 전환·설정 값 변경은 다른 시험이다.
+
+설치 앱을 강제 교체하거나 잠금·로그아웃·재부팅하지 않았다. 실제 계정 서버 왕복과 이전 앱 업데이트 설치, 권한 흐름은 #4에서 확인한다. 최종 업데이트 서명·Site 게시 및 독립 검토 결과는 완료 증거가 생긴 뒤 아래에 추가한다.
+
+### 1.5.1 최종 검토 보완 (2026-10-02)
+
+- 독립 검토의 충돌 해결 두 경로 수정: 미리보기·일시정지 및 최초 승인 snapshot 우회 쓰기 차단, 화면에 표시한 충돌 이후의 새 변경은 재확인 전 덮어쓰지 않음. 회귀 검사를 포함해 CalendarSyncServiceChecks 36개 통과.
+- 캘린더 연결의 공개 서버 주소 선택·복사 버튼과 완료 피드백 추가. 구문 및 Universal 통합 컴파일 확인; 실제 사용자 화면의 복사 클릭은 사용자 시험에 남김.
+- SUAllowsAutomaticUpdates=false로 Sparkle의 무동의 설치 opt-in도 차단. 기본 자동 확인은 false.
+- 사용자가 키체인 승인·서명 feed 게시·자동 업데이트 활성화를 나중으로 보류함. HappyLuluUpdateServiceEnabled=false이며 업데이트 제어는 비활성. 서명 feed나 업데이트 파일은 게시하지 않음. 현재 수동 교체만 제공.
+- AppUpdateChecks의 configuration-only 검사는 Sparkle 구성과 승인 정책을 검사하며 서명·변조 거부 검사를 명시적으로 제외한다. 서명 검사·실제 업데이트 설치 성공과 혼동하지 않는다.
+- 최종 배포는 1.5.1 build9 Universal/ad-hoc이며 Developer ID와 Apple 공증, Intel 실기기, 실제 EventKit 서버 왕복·잠금 해제·로그인 시험은 미검증이다.
+- 최종 보류 배포본의 ZIP 추출 앱 및 읽기 전용 DMG 앱이 원본 bundle의 모든 정규 파일 SHA256과 일치하고 각각 codesign --verify --deep --strict 통과. source Info.plist와 배포 bundle, source RELEASE-NOTES.md와 배포 노트의 byte 대조 통과.
+- AppUpdateChecks --configuration-only 통과: 실제 Sparkle updater를 별도 defaults domain에서 시작하고 자동 확인을 켜도 자동 다운로드 opt-in이 거부됨 확인. 서명 검사는 SKIP으로 출력하며 실행하지 않음.
+- 기존 출퇴근 29·Calendar core20 검사는 현재 기능 소스에서 통과했고, 최종 서비스 수정 뒤36검사 통과. Universal 최종 컴파일 통과. macOS의 deprecated native-build/hdiutil 및 Intel compatibility-library 경고는 빌드 실패가 아니며 Intel 실행 검증을 대체하지 않음.

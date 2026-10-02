@@ -27,7 +27,7 @@ func expectThrows<T>(_ value: @autoclosure () throws -> T, file: StaticString = 
 
 let tests = AttendanceTests()
 let checks: [(String, () throws -> Void)] = [
-    ("06:00 boundary", tests.testBeforeSixIsIgnoredAndExactSixAccepted),
+    ("Arrival windows and automatic morning half", tests.testArrivalWindowsAndAutomaticMorningHalf),
     ("First unlock wins", tests.testLaterUnlockDoesNotReplaceFirstArrival),
     ("New day", tests.testNewDayHasIndependentFirstUnlock),
     ("Work plus break", tests.testDepartureIncludesBreak),
@@ -41,7 +41,7 @@ let checks: [(String, () throws -> Void)] = [
     ("24-hour clock and timezone", tests.testClockLabelsUse24HoursAndRecordedZone),
     ("Manual correction", tests.testManualCorrectionSurvivesLaterUnlock),
     ("Invalid manual dates", tests.testRejectsFutureAndOtherDayWithoutMutation),
-    ("Manual early start", tests.testManualEarlyStartIsAllowed),
+    ("Manual arrival window", tests.testManualOutsideArrivalWindowIsRejected),
     ("Day off and resume", tests.testDayOffSuppressesLaterUnlockAndManualResumes),
     ("Day off expires", tests.testDayOffDoesNotSuppressNextDay),
     ("Local calendar day", tests.testLocalDayDoesNotUseUTCDate),
@@ -50,7 +50,12 @@ let checks: [(String, () throws -> Void)] = [
     ("No invented arrival", tests.testMissingFileDoesNotInventAttendanceOrWrite),
     ("Corrupt file preserved", tests.testCorruptFileIsPreserved),
     ("Invalid settings", tests.testInvalidSettingsCannotOverwriteFile),
-    ("Unknown schema", tests.testUnknownSchemaIsRejected)
+    ("Unknown schema", tests.testUnknownSchemaIsRejected),
+    ("Calendar and manual precedence", tests.testCalendarAndManualModePrecedence),
+    ("Half day and last Friday", tests.testMorningHalfAndLastFridayDoNotStack),
+    ("Calendar mode refresh", tests.testCalendarModeRefreshOnlyChangesAutomaticChoice),
+    ("Legacy state compatibility", tests.testLegacyStateDecodesWithoutHalfDayFields),
+    ("Calendar title ambiguity", tests.testCalendarTitleRecognitionRejectsAmbiguity)
 ]
 for (name, run) in checks {
     do { try run(); print("PASS \(name)") }

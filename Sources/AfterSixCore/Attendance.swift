@@ -14,17 +14,64 @@ public enum ArrivalSource: String, Codable, Sendable {
     case unlock, manual
 }
 
+public enum WorkdayMode: String, Codable, CaseIterable, Sendable {
+    case normal, morningHalf, afternoonHalf
+
+    public var label: String {
+        switch self {
+        case .normal: "일반 근무"
+        case .morningHalf: "오전 반차"
+        case .afternoonHalf: "오후 반차"
+        }
+    }
+}
+
+public enum ModeSource: String, Codable, Sendable {
+    case legacy, automatic, manual
+}
+
+/// A confirmed empty/ambiguous calendar read is different from a failed read.
+/// Only failures may reuse the last successfully observed mode.
+public enum CalendarModeObservation: Equatable, Sendable {
+    case confirmed(WorkdayMode?)
+    case unavailable
+
+    public func resolved(previous: WorkdayMode?) -> WorkdayMode? {
+        switch self {
+        case let .confirmed(mode): mode
+        case .unavailable: previous
+        }
+    }
+}
+
 public struct Arrival: Codable, Equatable, Sendable {
     public let day: String
     public let time: Date
     public let source: ArrivalSource
     public let timeZoneID: String
+    public let mode: WorkdayMode
+    public let modeSource: ModeSource
 
-    public init(day: String, time: Date, source: ArrivalSource, timeZoneID: String) {
+    public init(day: String, time: Date, source: ArrivalSource, timeZoneID: String,
+                mode: WorkdayMode = .normal, modeSource: ModeSource = .legacy) {
         self.day = day
         self.time = time
         self.source = source
         self.timeZoneID = timeZoneID
+        self.mode = mode
+        self.modeSource = modeSource
+    }
+
+    private enum CodingKeys: String, CodingKey { case day, time, source, timeZoneID, mode, modeSource }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        day = try values.decode(String.self, forKey: .day)
+        time = try values.decode(Date.self, forKey: .time)
+        source = try values.decode(ArrivalSource.self, forKey: .source)
+        timeZoneID = try values.decode(String.self, forKey: .timeZoneID)
+        mode = try values.decodeIfPresent(WorkdayMode.self, forKey: .mode) ?? .normal
+        modeSource = try values.decodeIfPresent(ModeSource.self, forKey: .modeSource) ?? .legacy
     }
 }
 
@@ -36,14 +83,30 @@ public struct AttendanceState: Codable, Equatable, Sendable {
     public var suppressedDays: Set<String> = []
     public var lastUnlockAt: Date?
     public var didOfferLoginItem = false
+    public var detectHalfDaysFromCalendar = false
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case version, settings, arrivals, suppressedDays, lastUnlockAt, didOfferLoginItem, detectHalfDaysFromCalendar
+    }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        version = try values.decode(Int.self, forKey: .version)
+        settings = try values.decode(WorkSettings.self, forKey: .settings)
+        arrivals = try values.decode([String: Arrival].self, forKey: .arrivals)
+        suppressedDays = try values.decode(Set<String>.self, forKey: .suppressedDays)
+        lastUnlockAt = try values.decodeIfPresent(Date.self, forKey: .lastUnlockAt)
+        didOfferLoginItem = try values.decode(Bool.self, forKey: .didOfferLoginItem)
+        detectHalfDaysFromCalendar = try values.decodeIfPresent(Bool.self, forKey: .detectHalfDaysFromCalendar) ?? false
+    }
 }
 
 public enum AttendanceError: LocalizedError {
     case invalidTime, invalidSettings, invalidState
     public var errorDescription: String? {
         switch self {
-        case .invalidTime: "오늘 날짜의 현재 시각 이전으로 입력해 주세요."
+        case .invalidTime: "오늘의 지난 시각을 입력해 주세요. 일반·오후 반차는 08:00~10:00, 오전 반차는 13:00~15:00입니다."
         case .invalidSettings: "근무는 1~16시간, 휴게는 0~4시간으로 설정해 주세요."
         case .invalidState: "기록 파일을 읽을 수 없습니다. 원본을 보존했습니다."
         }
@@ -66,22 +129,62 @@ public enum Attendance {
         state.arrivals[dayKey(now, calendar: calendar)]
     }
 
+    public static func isAllowed(_ date: Date, for mode: WorkdayMode, calendar: Calendar) -> Bool {
+        let minute = calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+        switch mode {
+        case .normal, .afternoonHalf: return (8 * 60...10 * 60).contains(minute)
+        case .morningHalf: return (13 * 60...15 * 60).contains(minute)
+        }
+    }
+
+    public static func automaticMode(at date: Date, calendar: Calendar,
+                                     calendarMode: WorkdayMode? = nil) -> WorkdayMode? {
+        if let calendarMode {
+            return isAllowed(date, for: calendarMode, calendar: calendar) ? calendarMode : nil
+        }
+        if isAllowed(date, for: .normal, calendar: calendar) { return .normal }
+        if isAllowed(date, for: .morningHalf, calendar: calendar) { return .morningHalf }
+        return nil
+    }
+
     @discardableResult
-    public static func recordUnlock(in state: inout AttendanceState, at date: Date, calendar: Calendar) -> Bool {
+    public static func recordUnlock(in state: inout AttendanceState, at date: Date, calendar: Calendar,
+                                    calendarMode: WorkdayMode? = nil) -> Bool {
         state.lastUnlockAt = date
         let day = dayKey(date, calendar: calendar)
-        guard calendar.component(.hour, from: date) >= 6,
+        guard let mode = automaticMode(at: date, calendar: calendar, calendarMode: calendarMode),
               state.arrivals[day] == nil,
               !state.suppressedDays.contains(day) else { return false }
-        state.arrivals[day] = Arrival(day: day, time: date, source: .unlock, timeZoneID: calendar.timeZone.identifier)
+        state.arrivals[day] = Arrival(day: day, time: date, source: .unlock,
+                                      timeZoneID: calendar.timeZone.identifier,
+                                      mode: mode, modeSource: .automatic)
         return true
     }
 
-    public static func setManual(in state: inout AttendanceState, at date: Date, now: Date, calendar: Calendar) throws {
-        guard date <= now, calendar.isDate(date, inSameDayAs: now) else { throw AttendanceError.invalidTime }
+    public static func setManual(in state: inout AttendanceState, at date: Date, now: Date,
+                                 calendar: Calendar, selectedMode: WorkdayMode? = nil,
+                                 calendarMode: WorkdayMode? = nil) throws {
+        let mode = selectedMode ?? automaticMode(at: date, calendar: calendar, calendarMode: calendarMode)
+        guard date <= now, calendar.isDate(date, inSameDayAs: now),
+              let mode, isAllowed(date, for: mode, calendar: calendar) else { throw AttendanceError.invalidTime }
         let day = dayKey(now, calendar: calendar)
-        state.arrivals[day] = Arrival(day: day, time: date, source: .manual, timeZoneID: calendar.timeZone.identifier)
+        state.arrivals[day] = Arrival(day: day, time: date, source: .manual,
+                                      timeZoneID: calendar.timeZone.identifier,
+                                      mode: mode, modeSource: selectedMode == nil ? .automatic : .manual)
         state.suppressedDays.remove(day)
+    }
+
+    @discardableResult
+    public static func refreshAutomaticMode(in state: inout AttendanceState, now: Date,
+                                            calendar: Calendar, calendarMode: WorkdayMode?) -> Bool {
+        let day = dayKey(now, calendar: calendar)
+        guard let arrival = state.arrivals[day], arrival.modeSource == .automatic,
+              let newMode = automaticMode(at: arrival.time, calendar: calendar, calendarMode: calendarMode)
+                ?? automaticMode(at: arrival.time, calendar: calendar),
+              newMode != arrival.mode else { return false }
+        state.arrivals[day] = Arrival(day: day, time: arrival.time, source: arrival.source,
+                                      timeZoneID: arrival.timeZoneID, mode: newMode, modeSource: .automatic)
+        return true
     }
 
     public static func skipToday(in state: inout AttendanceState, now: Date, calendar: Calendar) {
@@ -104,6 +207,7 @@ public enum Attendance {
     }
 
     public static func departure(for arrival: Arrival, settings: WorkSettings) -> Date {
+        if arrival.mode != .normal { return arrival.time.addingTimeInterval(4 * 60 * 60) }
         let minutes = max(0, settings.workMinutes + settings.breakMinutes - earlyLeaveMinutes(for: arrival))
         return arrival.time.addingTimeInterval(TimeInterval(minutes) * 60)
     }
