@@ -132,3 +132,5 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - 독립 검토: Mac 표시 지연/추가 시간 제목 및 Windows 작은 폭 날짜·경로 잘림 수정 후 최종 diff에 남은 P1/P2/P3 발견 없음. git diff --check 통과.
 - 실제 Windows GUI·DPI100/150/200%·창 크기·키보드·언어전환·트레이·잠금 해제·로그인 시험은 미실행. Mac 실제 화면·기존 기록 보존·잠금 해제는 별도 시험. 자동 업데이트/Intel 실기기는 기존 보류.
 - Universal Mac 패키지 생성/무결성과 이 후보의 실제 Windows CI는 진행 중이며 완료 증거를 뒤에 추가한다. 설치 앱/실제 출근 기록은 변경하지 않았다.
+
+완료 증거: 기능 소스5827f3eebd457ba0061474db2de27ab771693d2e의 실제 Windows runner [36993469659](https://github.com/young221718/happylulu-app/actions/runs/36993469659)는 completed/success. 코어 검사, 런타임 포함·별도 publish, 두 ZIP 생성과 artifact 업로드 모두 success. Mac1.5.3 build11 Universal 패키지 생성 완료 및 verify-release.py 통과: plist/한영 권한 리소스/두 아키텍처/체크섬/ZIP·읽기 전용 DMG의 모든 파일·심볼릭 링크/서명 확인. x86_64 링크의 CompatibilityPacks 경고가 있었지만 빌드는 성공했으며 Intel 실기기 시험으로 대신하지 않는다. 후보 산출물은 ignored dist에 보존하고 Git에는 넣지 않았다.
