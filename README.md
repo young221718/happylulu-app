@@ -82,7 +82,7 @@
 
 ## 동료에게 배포
 
-[HappyLulu 소개·다운로드 사이트](https://happylulu.cy-choi413364.chatgpt.site)에서 DMG·ZIP, 설치 안내와 릴리즈 노트를 제공합니다. 사이트와 앱 파일은 링크로 공개하며 GitHub 소스 저장소는 비공개로 유지합니다.
+[HappyLulu 소개·다운로드 사이트](https://happylulu.cy-choi-lulu.chatgpt.site)에서 DMG·ZIP, 설치 안내와 릴리즈 노트를 제공합니다. 사이트와 앱 파일은 링크로 공개하며 GitHub 소스 저장소는 비공개로 유지합니다.
 
 다운로드·설치 방법과 공개 범위는 [릴리즈 노트](RELEASE-NOTES.md)에 정리합니다. 배포 파일은 새 앱 bundle에서 만들며 제작자의 출퇴근 기록, 캘린더 연결 상태나 계정 인증정보를 넣지 않습니다.
 
