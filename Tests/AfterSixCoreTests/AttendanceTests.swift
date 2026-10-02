@@ -342,4 +342,64 @@ final class AttendanceTests {
         expectEqual(HalfDayRecognition.mode(from: ["오전 반차", "오후 반차"]), nil)
         expectEqual(HalfDayRecognition.mode(from: ["오전 반차 취소"]), nil)
     }
+
+    func testPostDepartureThirtyAndMealBoundaries() {
+        var state = AttendanceState()
+        let arrival = date("2026-09-28T09:00:00")
+        let day = "2026-09-28"
+        state.arrivals[day] = Arrival(day: day, time: arrival, source: .manual,
+                                      timeZoneID: calendar.timeZone.identifier)
+        let departure = date("2026-09-28T18:00:00")
+        func status(_ seconds: TimeInterval) -> PostDepartureStatus? {
+            Attendance.postDepartureStatus(in: state, now: departure.addingTimeInterval(seconds),
+                                            calendar: calendar)
+        }
+        expectNil(status(-1))
+        expectEqual(status(0)?.extraMinutes, nil)
+        expectEqual(status(0)?.mealMinutesRemaining, 120)
+        expectEqual(status(29 * 60 + 59)?.extraMinutes, nil)
+        expectEqual(status(29 * 60 + 59)?.mealMinutesRemaining, 91)
+        expectEqual(status(30 * 60)?.extraMinutes, 30)
+        expectEqual(status(30 * 60)?.mealMinutesRemaining, 90)
+        expectEqual(status(30 * 60 + 59)?.extraMinutes, 30)
+        expectEqual(status(30 * 60 + 59)?.mealMinutesRemaining, 90)
+        expectEqual(status(31 * 60)?.extraMinutes, 31)
+        expectEqual(status(31 * 60)?.mealMinutesRemaining, 89)
+        expectEqual(status(119 * 60 + 59)?.extraMinutes, 119)
+        expectEqual(status(119 * 60 + 59)?.mealMinutesRemaining, 1)
+        expectFalse(status(119 * 60 + 59)!.mealThresholdReached)
+        expectEqual(status(120 * 60)?.extraMinutes, 120)
+        expectEqual(status(120 * 60)?.mealMinutesRemaining, 0)
+        expectTrue(status(120 * 60)!.mealThresholdReached)
+        expectEqual(status(120 * 60 + 59)?.extraMinutes, 120)
+        expectEqual(status(120 * 60 + 59)?.mealMinutesRemaining, 0)
+        state.suppressedDays.insert(day)
+        expectNil(status(120 * 60))
+        state.arrivals.removeValue(forKey: day)
+        state.suppressedDays.remove(day)
+        expectNil(status(120 * 60))
+    }
+
+    func testPostDepartureUsesHalfDayAndLastFridayDeparture() {
+        let day = "2026-10-30" // Last Friday of the month.
+        for (arrivalTime, mode, scheduledDeparture) in [
+            ("09:00:00", WorkdayMode.normal, "16:00:00"),
+            ("13:00:00", .morningHalf, "17:00:00"),
+            ("09:00:00", .afternoonHalf, "13:00:00")
+        ] {
+            var state = AttendanceState()
+            state.arrivals[day] = Arrival(day: day, time: date("\(day)T\(arrivalTime)"),
+                                          source: .manual, timeZoneID: calendar.timeZone.identifier,
+                                          mode: mode)
+            let expected = date("\(day)T\(scheduledDeparture)")
+            expectEqual(Attendance.departure(for: state.arrivals[day]!, settings: state.settings), expected)
+            expectNil(Attendance.postDepartureStatus(in: state, now: expected.addingTimeInterval(-1),
+                                                      calendar: calendar))
+            let status = Attendance.postDepartureStatus(in: state,
+                                                         now: expected.addingTimeInterval(31 * 60),
+                                                         calendar: calendar)
+            expectEqual(status?.extraMinutes, 31)
+            expectEqual(status?.mealMinutesRemaining, 89)
+        }
+    }
 }

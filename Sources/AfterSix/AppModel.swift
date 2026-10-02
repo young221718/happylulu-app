@@ -14,6 +14,7 @@ final class AppModel: ObservableObject {
     let store: StateStore
     private var writable = true
     private var timer: Timer?
+    private var lastPeriodicRefreshAt: Date?
     private let halfDayCalendar = HalfDayCalendarReader()
     private var calendarModeDay: String?
     private var lastCalendarCheckAt: Date?
@@ -26,6 +27,9 @@ final class AppModel: ObservableObject {
     var departure: Date? { arrival.map { Attendance.departure(for: $0, settings: state.settings) } }
     var isSkipped: Bool { state.suppressedDays.contains(Attendance.dayKey(now, calendar: calendar)) }
     var minutesLeft: Int? { departure.map { Attendance.remainingMinutes(until: $0, now: now) } }
+    var postDepartureStatus: PostDepartureStatus? {
+        Attendance.postDepartureStatus(in: state, now: now, calendar: calendar)
+    }
     var earlyLeaveMinutes: Int {
         if let arrival { return arrival.mode == .normal ? Attendance.earlyLeaveMinutes(for: arrival) : 0 }
         return Attendance.earlyLeaveMinutes(on: now, timeZone: calendar.timeZone)
@@ -39,7 +43,20 @@ final class AppModel: ObservableObject {
     }
     var menuTitle: String {
         guard let minutesLeft else { return isSkipped ? L("오늘 쉬는 날", "Day off today") : L("출근 대기", "Waiting for arrival") }
-        return minutesLeft == 0 ? L("퇴근 가능", "Ready to leave") : L("퇴근 \(duration(minutesLeft))", "Leave in \(duration(minutesLeft))")
+        guard minutesLeft == 0 else { return L("퇴근 \(duration(minutesLeft))", "Leave in \(duration(minutesLeft))") }
+        if let extraMinutes = postDepartureStatus?.extraMinutes { return extraLabel(extraMinutes) }
+        return L("퇴근 가능", "Ready to leave")
+    }
+    func extraLabel(_ minutes: Int) -> String {
+        L("추가 \(minutes)분 중", "Extra \(minutes) min")
+    }
+    func mealStatusLabel(_ status: PostDepartureStatus) -> String {
+        guard let departure else { return L("식대 기준", "Meal threshold") }
+        let thresholdTime = timeLabel(departure.addingTimeInterval(120 * 60))
+        return status.mealThresholdReached
+            ? L("식대 기준 \(thresholdTime) 도달", "Meal threshold \(thresholdTime) reached")
+            : L("식대 기준 \(thresholdTime) · \(status.mealMinutesRemaining)분 남음",
+                "Meal threshold \(thresholdTime) · \(status.mealMinutesRemaining) min left")
     }
     var loginEnabled: Bool { loginStatus == .enabled || loginStatus == .requiresApproval }
     var loginDescription: String {
@@ -73,8 +90,8 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(woke(_:)), name: NSWorkspace.didWakeNotification, object: nil
         )
-        timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.tick() }
         }
         if let timer { RunLoop.main.add(timer, forMode: .common) }
         if state.detectHalfDaysFromCalendar { Task { await refreshCalendarHalfDay(force: true) } }
@@ -86,10 +103,18 @@ final class AppModel: ObservableObject {
 
     func refresh() {
         now = Date()
+        lastPeriodicRefreshAt = now
         loginStatus = SMAppService.mainApp.status
         if state.detectHalfDaysFromCalendar,
            lastCalendarCheckAt.map({ now.timeIntervalSince($0) >= 300 }) ?? true {
             Task { await refreshCalendarHalfDay() }
+        }
+    }
+
+    private func tick() {
+        now = Date()
+        if lastPeriodicRefreshAt.map({ now.timeIntervalSince($0) >= 15 }) ?? true {
+            refresh()
         }
     }
 

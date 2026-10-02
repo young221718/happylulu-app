@@ -55,7 +55,9 @@ let checks: [(String, () throws -> Void)] = [
     ("Half day and last Friday", tests.testMorningHalfAndLastFridayDoNotStack),
     ("Calendar mode refresh", tests.testCalendarModeRefreshOnlyChangesAutomaticChoice),
     ("Legacy state compatibility", tests.testLegacyStateDecodesWithoutHalfDayFields),
-    ("Calendar title ambiguity", tests.testCalendarTitleRecognitionRejectsAmbiguity)
+    ("Calendar title ambiguity", tests.testCalendarTitleRecognitionRejectsAmbiguity),
+    ("Post-departure thirty and meal boundaries", tests.testPostDepartureThirtyAndMealBoundaries),
+    ("Post-departure half-day and last Friday", tests.testPostDepartureUsesHalfDayAndLastFridayDeparture)
 ]
 for (name, run) in checks {
     do { try run(); print("PASS \(name)") }

@@ -88,12 +88,17 @@ internal sealed class TrayContext : ApplicationContext
     {
         DateTimeOffset now = DateTimeOffset.Now;
         Arrival? arrival = Attendance.Today(controller.State, now);
-        string title = arrival is null
-            ? (controller.State.SuppressedDays.Contains(Attendance.DayKey(now))
+        OvertimeStatus? overtime = Attendance.Overtime(controller.State, now);
+        string title = overtime is { ElapsedMinutes: >= 30 } status
+            ? Words.T($"추가 {status.ElapsedMinutes}분 중", $"Extra {status.ElapsedMinutes} min in progress")
+            : arrival is null
+                ? (controller.State.SuppressedDays.Contains(Attendance.DayKey(now))
                 ? Words.T("오늘 쉬는 날", "Day off")
                 : Words.T("출근 대기", "Waiting for arrival"))
-            : Words.T("퇴근 ", "Leave in ") + Words.Duration(Attendance.RemainingMinutes(
-                Attendance.Departure(arrival, controller.State.Settings), now));
+                : Attendance.RemainingMinutes(Attendance.Departure(arrival, controller.State.Settings), now) == 0
+                    ? Words.T("예정 퇴근 시각 지남", "Planned departure passed")
+                    : Words.T("퇴근 ", "Leave in ") + Words.Duration(Attendance.RemainingMinutes(
+                        Attendance.Departure(arrival, controller.State.Settings), now));
         string tooltip = "HappyLulu · " + title;
         tray.Text = tooltip.Length <= 63 ? tooltip : tooltip[..63];
         if (today is { IsDisposed: false, Visible: true }) today.RefreshView();

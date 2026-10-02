@@ -1,5 +1,8 @@
 # HappyLulu
 
+
+개발 후보는 **Mac 1.5.3 build11**입니다. 예정 퇴근 30분 이후 추가 경과 분과 2시간 식대 시간 기준을 표시합니다. 시간 안내이며 실제 근무·지급 승인 여부를 확인하지 않습니다. 공개 다운로드는 아직 1.5.2입니다.
+
 [English](README.en.md) · [영어 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/en/)
 
 <img src="Resources/HappyLuluIcon.png" width="120" alt="HappyLulu 웃는 시계 아이콘">

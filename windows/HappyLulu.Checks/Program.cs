@@ -47,6 +47,36 @@ Check(rejected, "future manual arrival rejected");
 Check(Attendance.IsLastFriday(At(2026, 10, 30, 9, 0)), "last Friday identified");
 Check(!Attendance.IsLastFriday(At(2026, 10, 23, 9, 0)), "ordinary Friday identified");
 
+var overtimeState = new AttendanceState();
+Check(Attendance.Overtime(overtimeState, At(2026, 10, 6, 18, 31)) is null,
+      "no overtime guide without an arrival");
+Attendance.SetManual(overtimeState, At(2026, 10, 6, 9, 0),
+                     At(2026, 10, 6, 9, 30), WorkdayMode.Normal);
+DateTimeOffset planned = Attendance.Departure(overtimeState.Arrivals["2026-10-06"], overtimeState.Settings);
+Check(Attendance.MealThresholdAt(overtimeState.Arrivals["2026-10-06"], overtimeState.Settings) ==
+      At(2026, 10, 6, 20, 0), "meal threshold clock follows planned departure by two hours");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(-1)) is null,
+      "no overtime guide before departure");
+Check(Attendance.Overtime(overtimeState, planned) == new OvertimeStatus(0, 120),
+      "meal countdown starts at planned departure");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(30).AddSeconds(-1)) == new OvertimeStatus(29, 91),
+      "before thirty minutes meal guide remains but extra display threshold is unmet");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(30)) == new OvertimeStatus(30, 90),
+      "thirty-minute boundary uses floor elapsed and ceil meal countdown");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(31).AddSeconds(59)) == new OvertimeStatus(31, 89),
+      "elapsed minutes floor while meal countdown rounds up");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(119).AddSeconds(1)) == new OvertimeStatus(119, 1),
+      "meal countdown remains one until exact threshold");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(120)) is { MealThresholdReached: true, MinutesToMealThreshold: 0 },
+      "meal time threshold reached at two hours");
+Attendance.SkipToday(overtimeState, At(2026, 10, 6, 19, 0));
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(121)) is null,
+      "day off removes overtime guide");
+var fridayStatus = Attendance.Overtime(state, At(2026, 10, 30, 16, 1));
+Check(fridayStatus == new OvertimeStatus(31, 89), "last Friday overtime uses shortened departure");
+var halfStatus = Attendance.Overtime(state, At(2026, 10, 4, 13, 31));
+Check(halfStatus == new OvertimeStatus(31, 89), "half-day overtime uses four-hour departure");
+
 string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "happylulu-checks-" + Guid.NewGuid().ToString("N"));
 try
 {

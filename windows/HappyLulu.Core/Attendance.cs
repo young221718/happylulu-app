@@ -48,6 +48,11 @@ public sealed class AttendanceState
     };
 }
 
+public readonly record struct OvertimeStatus(int ElapsedMinutes, int MinutesToMealThreshold)
+{
+    public bool MealThresholdReached => MinutesToMealThreshold == 0;
+}
+
 public static class Attendance
 {
     public static string DayKey(DateTimeOffset date) =>
@@ -114,6 +119,22 @@ public static class Attendance
 
     public static int RemainingMinutes(DateTimeOffset departure, DateTimeOffset now) =>
         Math.Max(0, (int)Math.Ceiling((departure - now).TotalMinutes));
+
+    public static DateTimeOffset MealThresholdAt(Arrival arrival, WorkSettings settings) =>
+        Departure(arrival, settings).AddMinutes(120);
+
+    // This is a time guide from planned departure, not evidence of actual work or reimbursement approval.
+    public static OvertimeStatus? Overtime(AttendanceState state, DateTimeOffset now)
+    {
+        string day = DayKey(now);
+        if (state.SuppressedDays.Contains(day) || !state.Arrivals.TryGetValue(day, out Arrival? arrival))
+            return null;
+        DateTimeOffset departure = Departure(arrival, state.Settings);
+        if (now < departure) return null;
+        int elapsed = (int)Math.Floor((now - departure).TotalMinutes);
+        int toMeal = Math.Max(0, (int)Math.Ceiling((MealThresholdAt(arrival, state.Settings) - now).TotalMinutes));
+        return new OvertimeStatus(elapsed, toMeal);
+    }
 
     public static double Progress(Arrival arrival, DateTimeOffset departure, DateTimeOffset now)
     {
