@@ -1,0 +1,42 @@
+name: Windows HappyLulu
+
+on:
+  push:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Check platform-independent attendance core
+        run: dotnet run --project windows/HappyLulu.Checks/HappyLulu.Checks.csproj --configuration Release
+      - name: Publish portable Windows app with bundled runtime
+        run: dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false --output dist/windows/self-contained
+      - name: Publish small portable Windows app requiring Desktop Runtime
+        run: dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj --configuration Release --runtime win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false --output dist/windows/runtime-required
+      - name: Package both Windows builds
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/windows/self-contained/* -DestinationPath dist/windows/HappyLulu-1.0.0-windows-x64.zip
+          Compress-Archive -Path dist/windows/runtime-required/* -DestinationPath dist/windows/HappyLulu-1.0.0-windows-x64-runtime-required.zip
+          $small = (Get-Item dist/windows/HappyLulu-1.0.0-windows-x64-runtime-required.zip).Length
+          if ($small -ge 25MB) { throw "Runtime-required ZIP must fit the 25 MiB Site asset limit: $small bytes" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HappyLulu-1.0.0-windows-x64
+          path: dist/windows/HappyLulu-1.0.0-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HappyLulu-1.0.0-windows-x64-runtime-required
+          path: dist/windows/HappyLulu-1.0.0-windows-x64-runtime-required.zip

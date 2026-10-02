@@ -105,3 +105,14 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - 최종 보류 배포본의 ZIP 추출 앱 및 읽기 전용 DMG 앱이 원본 bundle의 모든 정규 파일 SHA256과 일치하고 각각 codesign --verify --deep --strict 통과. source Info.plist와 배포 bundle, source RELEASE-NOTES.md와 배포 노트의 byte 대조 통과.
 - AppUpdateChecks --configuration-only 통과: 실제 Sparkle updater를 별도 defaults domain에서 시작하고 자동 확인을 켜도 자동 다운로드 opt-in이 거부됨 확인. 서명 검사는 SKIP으로 출력하며 실행하지 않음.
 - 기존 출퇴근 29·Calendar core20 검사는 현재 기능 소스에서 통과했고, 최종 서비스 수정 뒤36검사 통과. Universal 최종 컴파일 통과. macOS의 deprecated native-build/hdiutil 및 Intel compatibility-library 경고는 빌드 실패가 아니며 Intel 실행 검증을 대체하지 않음.
+
+## Mac 1.5.2 영어판 / Windows 1.0.0 (2026-10-02)
+
+- Mac: 영어/한국어/시스템 언어 선택과 동적 날짜·기간·오류 표시 추가. native HappyLulu 빌드, 출퇴근 29검사·캘린더 서비스 36검사·plist lint 통과. 기존 미변경 Calendar core 20검사는 이전 기능 검증을 유지하며 이번 언어 변경으로 재실행하지 않음.
+- Mac Universal 1.5.2 build10: arm64/x86_64 빌드 및 ad-hoc 서명 성공. `python3 scripts/verify-release.py dist/releases/1.5.2-build10`은 source plist/노트, ko/en 권한 리소스, SHA-256, ZIP·읽기 전용 DMG의 모든 파일/심볼릭 링크와 세 앱 서명을 대조해 통과. 기존 1.5.1 배포 파일은 보존.
+- Mac UI: 별도 preview bundle ID와 임시 StateStore로 실제 SwiftUI 영문 패널 두 상태(364×470) 및 설정(620×700)을 렌더해 확인. 사용자 실제 기록·캘린더·로그인 등록·업데이트 시작은 사용하지 않음. 하단 내용은 스크롤 영역. OS 자체 오류/권한 팝업은 OS 언어를 따를 수 있음.
+- Windows: 작업 경로에만 설치한 Microsoft .NET 10 SDK 10.0.401에서 코어 22검사, win-x64 교차 빌드 경고/오류0, self-contained/runtime-required publish 성공. ZIP은 HappyLulu.exe만 포함하며 무결성 검사 통과. 47,089,436바이트 런타임 포함본과 1,203,692바이트 런타임 별도본을 생성.
+- Windows 작은 ZIP은 .NET 10 Desktop Runtime x64가 필요하며 Site 다운로드 옆에 명시. 기존 아이콘의 복사본은 원본과 동일한 SHA-256의 1,125,213바이트 소스 이미지로 검토함. 빌드 캐시·bin/obj·ZIP·PDB·개인 데이터는 Git에서 제외.
+- 웹: 영어 `/en/` 랜딩과 전 페이지 언어 전환, 한국어/영어 Windows 설치 안내 추가. 8 HTML 경로·앵커·자산 및 신규/기존 배포 파일 해시, JS 구문 통과. 데스크톱·390px·768px 영어 내비 3개/수평 넘침 없음, 모바일 메뉴 선택 후 닫힘·다운로드 앵커 위치와 영어 마지막 금요일 예시 확인.
+
+자동 업데이트 서명/활성화와 Intel 실기기는 사용자 요청대로 보류. 실제 Windows 트레이·언어 전환·잠금 해제·재로그인 자동 실행, Mac 기존 데이터 유지와 실제 잠금 해제/캘린더 서버 왕복은 미검증이며 사용자 시험이 필요하다. 독립 검토·GitHub CI·최종 Site 게시 결과는 실제 종료 결과 확인 후 별도 기록한다.

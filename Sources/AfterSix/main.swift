@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var calendarWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var observation: AnyCancellable?
+    private var languageObservation: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -33,6 +34,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         observation = model.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in self?.updateTitle() }
         }
+        languageObservation = AppLanguage.shared.$choice.sink { [weak self] _ in
+            DispatchQueue.main.async { [weak self] in
+                self?.updateTitle()
+                self?.settingsWindow?.title = L("HappyLulu 설정", "HappyLulu Settings")
+            }
+        }
         let firstLaunch = !model.state.didOfferLoginItem
         model.start()
         calendarSync.start()
@@ -44,8 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateTitle() {
         statusItem.button?.title = " " + model.menuTitle
-        statusItem.button?.toolTip = model.departure.map { "출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))" }
-            ?? "HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 잠금 해제를 기다립니다"
+        statusItem.button?.toolTip = model.departure.map { L("출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))", "Arrived \(model.timeLabel(model.arrival!.time)) · expected departure \(model.timeLabel($0))") }
+            ?? L("HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 잠금 해제를 기다립니다", "HappyLulu · waiting for unlock: regular 08:00–10:00, morning off 13:00–15:00")
         statusItem.button?.setAccessibilityLabel("HappyLulu, \(model.menuTitle)")
     }
 
@@ -83,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 700),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
-            window.title = "HappyLulu 설정"
+            window.title = L("HappyLulu 설정", "HappyLulu Settings")
             window.delegate = self
             window.isReleasedWhenClosed = false
             window.contentViewController = NSHostingController(rootView: SettingsView(

@@ -11,7 +11,7 @@ final class AppUpdater: NSObject, ObservableObject {
     private var controller: SPUStandardUpdaterController!
 
     var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "개발 버전"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? L("개발 버전", "Development build")
     }
 
     override init() {

@@ -1,19 +1,25 @@
 # HappyLulu
 
+[English](README.en.md) · [영어 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/en/)
+
 <img src="Resources/HappyLuluIcon.png" width="120" alt="HappyLulu 웃는 시계 아이콘">
 
 맥의 첫 잠금 해제로 출근을 기록하고, 메뉴바에서 퇴근까지 남은 시간을 확인하는 룰루랩 동료용 앱입니다. 회사의 공식 근태 시스템이나 급여용 증빙은 아닙니다.
 
-**현재 배포: 1.5.1 build 9 · macOS 13 이상 · Apple Silicon 권장**
+**현재 배포: 1.5.2 build 10 · macOS 13 이상 · Apple Silicon 권장**
 
 [소개·다운로드·설치](https://happylulu.cy-choi-lulu.chatgpt.site/) · [릴리즈 노트](RELEASE-NOTES.md) · [실제 내부 시험](https://github.com/young221718/happylulu-app/issues/4)
+
+## Windows판
+
+Windows 10/11 x64용 별도 트레이 앱을 추가합니다. 출퇴근·반차·로컬 기록·별도 설정과 한국어/영어를 지원하며 캘린더 동기화는 현재 macOS 전용입니다. 설치와 빌드는 [Windows 안내](windows/README.md)를 참고하세요. Mac과 Windows 기록은 서로 동기화하지 않습니다.
 
 ## 설치하고 시작하기
 
 1. 사이트에서 DMG 또는 ZIP을 받습니다. 기존 앱이 실행 중이면 메뉴의 **종료**로 먼저 닫습니다.
 2. 앱을 `Applications` 또는 `~/Applications`로 옮기고 실행합니다. 이전 앱과 같은 위치에서 교체하면 중복 실행을 피할 수 있습니다.
 3. 메뉴바의 웃는 시계 아이콘을 누릅니다. 이미 출근했다면 **출근 시각 입력**에서 시각과 근무 유형을 저장합니다.
-4. **설정**을 열어 근무·휴게시간, 로그인 시 자동 실행, 캘린더 반차 인식을 조정합니다.
+4. **설정**을 열어 근무·휴게시간, 로그인 시 자동 실행, 캘린더 반차 인식을 조정합니다. 언어에서 시스템 언어·한국어·영어를 선택할 수 있습니다.
 
 첫 실행에는 로그인 자동 실행 등록을 시도하며 macOS 승인이 필요할 수 있습니다. **설정 → 일반 → 로그인 시 자동 실행**에서 끌 수 있고, 이후 사용자가 끈 설정을 다시 켜지 않습니다.
 

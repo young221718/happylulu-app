@@ -38,17 +38,17 @@ final class AppModel: ObservableObject {
         return Attendance.progress(from: arrival.time, until: departure, now: now)
     }
     var menuTitle: String {
-        guard let minutesLeft else { return isSkipped ? "오늘 쉬는 날" : "출근 대기" }
-        return minutesLeft == 0 ? "퇴근 가능" : "퇴근 \(duration(minutesLeft))"
+        guard let minutesLeft else { return isSkipped ? L("오늘 쉬는 날", "Day off today") : L("출근 대기", "Waiting for arrival") }
+        return minutesLeft == 0 ? L("퇴근 가능", "Ready to leave") : L("퇴근 \(duration(minutesLeft))", "Leave in \(duration(minutesLeft))")
     }
     var loginEnabled: Bool { loginStatus == .enabled || loginStatus == .requiresApproval }
     var loginDescription: String {
         switch loginStatus {
-        case .enabled: "로그인 시 자동 실행 켜짐"
-        case .requiresApproval: "시스템 설정에서 허용이 필요합니다"
-        case .notRegistered: "로그인 시 자동 실행 꺼짐"
-        case .notFound: "앱을 응용 프로그램 폴더에서 실행해 주세요"
-        @unknown default: "자동 실행 상태 확인 필요"
+        case .enabled: L("로그인 시 자동 실행 켜짐", "Launch at login is on")
+        case .requiresApproval: L("시스템 설정에서 허용이 필요합니다", "Allow in System Settings")
+        case .notRegistered: L("로그인 시 자동 실행 꺼짐", "Launch at login is off")
+        case .notFound: L("앱을 응용 프로그램 폴더에서 실행해 주세요", "Run the app from Applications")
+        @unknown default: L("자동 실행 상태 확인 필요", "Check launch-at-login status")
         }
     }
 
@@ -258,13 +258,13 @@ final class AppModel: ObservableObject {
     }
 
     func duration(_ minutes: Int) -> String {
-        if minutes < 60 { return "\(minutes)분" }
-        if minutes % 60 == 0 { return "\(minutes / 60)시간" }
-        return "\(minutes / 60)시간 \(minutes % 60)분"
+        if minutes < 60 { return L("\(minutes)분", "\(minutes) min") }
+        if minutes % 60 == 0 { return L("\(minutes / 60)시간", "\(minutes / 60) hr") }
+        return L("\(minutes / 60)시간 \(minutes % 60)분", "\(minutes / 60) hr \(minutes % 60) min")
     }
 
     func timeLabel(_ date: Date) -> String {
-        Attendance.clockLabel(date, timeZone: calendar.timeZone)
+        displayClock(date, timeZone: calendar.timeZone)
     }
 
     func showData() { NSWorkspace.shared.selectFile(store.url.path, inFileViewerRootedAtPath: "") }

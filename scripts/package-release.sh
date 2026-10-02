@@ -29,6 +29,10 @@ for architecture in arm64 x86_64; do
   case "$architectures" in *" $architecture "*) ;; *) printf 'Missing architecture: %s\n' "$architecture" >&2; exit 1;; esac
 done
 cp Resources/Info.plist "$app_dir/Contents/Info.plist"
+for language in ko en; do
+    mkdir -p "$app_dir/Contents/Resources/$language.lproj"
+    cp "Resources/$language.lproj/InfoPlist.strings" "$app_dir/Contents/Resources/$language.lproj/InfoPlist.strings"
+done
 bash scripts/embed-sparkle.sh "$app_dir" "$project_dir/.build/distribution-arm64"
 swift scripts/make-icon.swift "$project_dir/Resources/HappyLuluIcon.png" "$staging_dir/HappyLulu.iconset"
 iconutil -c icns "$staging_dir/HappyLulu.iconset" -o "$app_dir/Contents/Resources/AppIcon.icns"
