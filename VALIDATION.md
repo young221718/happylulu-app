@@ -116,3 +116,10 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - 웹: 영어 `/en/` 랜딩과 전 페이지 언어 전환, 한국어/영어 Windows 설치 안내 추가. 8 HTML 경로·앵커·자산 및 신규/기존 배포 파일 해시, JS 구문 통과. 데스크톱·390px·768px 영어 내비 3개/수평 넘침 없음, 모바일 메뉴 선택 후 닫힘·다운로드 앵커 위치와 영어 마지막 금요일 예시 확인.
 
 자동 업데이트 서명/활성화와 Intel 실기기는 사용자 요청대로 보류. 실제 Windows 트레이·언어 전환·잠금 해제·재로그인 자동 실행, Mac 기존 데이터 유지와 실제 잠금 해제/캘린더 서버 왕복은 미검증이며 사용자 시험이 필요하다. 독립 검토·GitHub CI·최종 Site 게시 결과는 실제 종료 결과 확인 후 별도 기록한다.
+
+### 게시 및 독립 검토 결과
+
+- 독립 검토의 영어 공개 안내·복구 문구·기존 FAQ Windows 미지원 문구를 수정하고 재검증. 최종 P1/P2 지적 없음. 영어 README는 Windows 영어 안내로 연결함.
+- 기능 GitHub main `489e56f4d478dc5639768c82dd65f05bf509558c` 원격 readback. Windows GitHub Actions [36988588794](https://github.com/young221718/happylulu-app/actions/runs/36988588794)는 실제 Windows runner에서 코어 검사·두 publish·ZIP 패키징·두 artifact 업로드 모두 success, 최종 completed/success 확인. 이것은 사용자 Windows 세션 시험을 대신하지 않음.
+- Site source `a0158727d5cabed9a87776b231a7cba40dfcdac8`, version5, deployment `appgdep_6abf7649de1481919889192b29a370fe` succeeded. 공식 https://happylulu.cy-choi-lulu.chatgpt.site 및 영어 `/en/`. Mac 1.5.2 DMG·ZIP과 Windows 런타임 별도 ZIP을 검증한 archive로 게시. 기존 버전 파일 보존.
+- Windows 실제 사용자 시험은 [이슈 #7](https://github.com/young221718/happylulu-app/issues/7), Mac 언어 전환·기존 데이터·기존 실제 시험은 [이슈 #4](https://github.com/young221718/happylulu-app/issues/4#issuecomment-5948947107)에서 미완료 유지.
