@@ -51,8 +51,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateTitle() {
         statusItem.button?.title = " " + model.menuTitle
-        statusItem.button?.toolTip = model.departure.map { L("출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))", "Arrived \(model.timeLabel(model.arrival!.time)) · expected departure \(model.timeLabel($0))") }
+        var toolTip = model.departure.map { L("출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))", "Arrived \(model.timeLabel(model.arrival!.time)) · expected departure \(model.timeLabel($0))") }
             ?? L("HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 잠금 해제를 기다립니다", "HappyLulu · waiting for unlock: regular 08:00–10:00, morning off 13:00–15:00")
+        if let extra = model.postDepartureStatus {
+            toolTip += " · " + model.mealStatusLabel(extra)
+            toolTip += " · " + L("예정 시각 기준, 실제 근무·지급 미확인",
+                                   "Scheduled time only; work and payment unverified")
+        }
+        statusItem.button?.toolTip = toolTip
         statusItem.button?.setAccessibilityLabel("HappyLulu, \(model.menuTitle)")
     }
 

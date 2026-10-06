@@ -123,3 +123,14 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - 기능 GitHub main `489e56f4d478dc5639768c82dd65f05bf509558c` 원격 readback. Windows GitHub Actions [36988588794](https://github.com/young221718/happylulu-app/actions/runs/36988588794)는 실제 Windows runner에서 코어 검사·두 publish·ZIP 패키징·두 artifact 업로드 모두 success, 최종 completed/success 확인. 이것은 사용자 Windows 세션 시험을 대신하지 않음.
 - Site source `a0158727d5cabed9a87776b231a7cba40dfcdac8`, version5, deployment `appgdep_6abf7649de1481919889192b29a370fe` succeeded. 공식 https://happylulu.cy-choi-lulu.chatgpt.site 및 영어 `/en/`. Mac 1.5.2 DMG·ZIP과 Windows 런타임 별도 ZIP을 검증한 archive로 게시. 기존 버전 파일 보존.
 - Windows 실제 사용자 시험은 [이슈 #7](https://github.com/young221718/happylulu-app/issues/7), Mac 언어 전환·기존 데이터·기존 실제 시험은 [이슈 #4](https://github.com/young221718/happylulu-app/issues/4#issuecomment-5948947107)에서 미완료 유지.
+
+## 2026-10-02 Mac 1.5.3 / Windows 1.1.0 개발 후보
+
+- 요청: GitHub #8 추가 시간·2시간 식대 기준, #9 Windows 카드 디자인. 공개 다운로드는 Mac1.5.2/Windows1.0.0 유지.
+- Mac: AfterSixChecks31개와 native HappyLulu debug 빌드 통과. +30분·+120분의 초 경계, 기록 없음·쉬는날·반차·마지막금요일 계산 확인. 화면 시각은 1초 tick, 서비스 조회는 기존 15초 주기. 실제 기준 시각과 잔여 분은 한국어/영어로 표시하며 지급 승인과 구별.
+- Windows: .NET10 코어34검사, Mac에서 win-x64 교차 빌드 경고/오류0, runtime-required 및 self-contained publish·ZIP 무결성 통과. 오늘 창의 둥근 카드·큰 시간·출퇴근·식대 카드, 설정 카드와 좁은 창 줄바꿈을 보완.
+- 독립 검토: Mac 표시 지연/추가 시간 제목 및 Windows 작은 폭 날짜·경로 잘림 수정 후 최종 diff에 남은 P1/P2/P3 발견 없음. git diff --check 통과.
+- 실제 Windows GUI·DPI100/150/200%·창 크기·키보드·언어전환·트레이·잠금 해제·로그인 시험은 미실행. Mac 실제 화면·기존 기록 보존·잠금 해제는 별도 시험. 자동 업데이트/Intel 실기기는 기존 보류.
+- Universal Mac 패키지 생성/무결성과 이 후보의 실제 Windows CI는 진행 중이며 완료 증거를 뒤에 추가한다. 설치 앱/실제 출근 기록은 변경하지 않았다.
+
+완료 증거: 기능 소스5827f3eebd457ba0061474db2de27ab771693d2e의 실제 Windows runner [36993469659](https://github.com/young221718/happylulu-app/actions/runs/36993469659)는 completed/success. 코어 검사, 런타임 포함·별도 publish, 두 ZIP 생성과 artifact 업로드 모두 success. Mac1.5.3 build11 Universal 패키지 생성 완료 및 verify-release.py 통과: plist/한영 권한 리소스/두 아키텍처/체크섬/ZIP·읽기 전용 DMG의 모든 파일·심볼릭 링크/서명 확인. x86_64 링크의 CompatibilityPacks 경고가 있었지만 빌드는 성공했으며 Intel 실기기 시험으로 대신하지 않는다. 후보 산출물은 ignored dist에 보존하고 Git에는 넣지 않았다.

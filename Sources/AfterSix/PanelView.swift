@@ -103,15 +103,34 @@ struct PanelView: View {
         }
     }
 
+    private var extraMinutes: Int? {
+        guard model.minutesLeft == 0 else { return nil }
+        return model.postDepartureStatus?.extraMinutes
+    }
+
     private var summary: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(model.minutesLeft == nil ? L("오늘", "TODAY") : L("퇴근까지", "TIME TO GO HOME"))
+            Text(model.minutesLeft == nil ? L("오늘", "TODAY")
+                 : extraMinutes == nil ? L("퇴근까지", "TIME TO GO HOME") : L("추가 시간", "EXTRA TIME"))
                 .font(.system(size: 9, weight: .bold, design: .rounded)).tracking(1.8).foregroundStyle(accent)
             if let minutes = model.minutesLeft {
-                Text(minutes == 0 ? L("오늘도 수고했어요", "Great work today") : model.duration(minutes))
+                Text(minutes == 0
+                     ? extraMinutes.map(model.extraLabel)
+                         ?? L("오늘도 수고했어요", "Great work today")
+                     : model.countdownText)
                     .font(.system(size: 29, weight: .semibold, design: .rounded)).monospacedDigit()
-                Text(minutes == 0 ? L("오늘의 퇴근 시간이 됐어요.", "It’s time to go home.") : L("퇴근까지 남았어요", "Time until departure"))
+                    .lineLimit(1).minimumScaleFactor(0.5)
+                Text(extraMinutes != nil ? L("예정 퇴근 이후 경과 시간", "Elapsed after scheduled departure")
+                     : minutes == 0 ? L("오늘의 퇴근 시간이 됐어요.", "It’s time to go home.")
+                     : L("퇴근까지 남았어요", "Time until departure"))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
+                if let extra = model.postDepartureStatus {
+                    Text(model.mealStatusLabel(extra))
+                        .font(.system(size: 12, weight: .medium)).foregroundStyle(accent)
+                    Text(L("예정 퇴근 기준 안내이며 실제 근무나 식대 지급 승인을 뜻하지 않습니다.",
+                           "Based on scheduled departure; this does not verify work or approve meal reimbursement."))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
                 ProgressView(value: model.progress).padding(.top, 6)
             } else {
                 Text(model.isSkipped ? L("오늘은 쉬어가요", "Take today off") : L("출근 기록 대기", "Waiting for arrival"))

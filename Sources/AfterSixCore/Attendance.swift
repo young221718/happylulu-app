@@ -75,6 +75,14 @@ public struct Arrival: Codable, Equatable, Sendable {
     }
 }
 
+/// Informational time since the scheduled departure. This is not a record of
+/// actual work or an approval of a meal allowance.
+public struct PostDepartureStatus: Equatable, Sendable {
+    public let extraMinutes: Int?
+    public let mealMinutesRemaining: Int
+    public var mealThresholdReached: Bool { mealMinutesRemaining == 0 }
+}
+
 public struct AttendanceState: Codable, Equatable, Sendable {
     public var version = 1
     public var settings = WorkSettings()
@@ -220,6 +228,19 @@ public enum Attendance {
 
     public static func remainingMinutes(until departure: Date, now: Date) -> Int {
         max(0, Int(ceil(departure.timeIntervalSince(now) / 60)))
+    }
+
+    public static func postDepartureStatus(in state: AttendanceState, now: Date,
+                                           calendar: Calendar) -> PostDepartureStatus? {
+        guard !state.suppressedDays.contains(dayKey(now, calendar: calendar)),
+              let arrival = today(in: state, now: now, calendar: calendar) else { return nil }
+        let elapsed = now.timeIntervalSince(departure(for: arrival, settings: state.settings))
+        guard elapsed >= 0 else { return nil }
+        let elapsedMinutes = Int(floor(elapsed / 60))
+        return PostDepartureStatus(
+            extraMinutes: elapsedMinutes >= 30 ? elapsedMinutes : nil,
+            mealMinutesRemaining: max(0, Int(ceil((120 * 60 - elapsed) / 60)))
+        )
     }
 }
 

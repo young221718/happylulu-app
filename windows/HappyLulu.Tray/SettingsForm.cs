@@ -7,9 +7,10 @@ internal sealed class SettingsForm : Form
 {
     private readonly AppController controller;
     private readonly ComboBox language = new() { Width = 250, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox remainingUnit = new() { Width = 250, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly CheckBox startup = new() { AutoSize = true };
-    private readonly Label startupHint = new() { AutoSize = true, MaximumSize = new Size(510, 0) };
-    private readonly TextBox dataPath = new() { ReadOnly = true, Width = 500 };
+    private readonly Label startupHint = new() { AutoSize = true, MaximumSize = new Size(430, 0) };
+    private readonly TextBox dataPath = new() { ReadOnly = true, Width = 420 };
     private readonly NumericUpDown work = new() { Minimum = 60, Maximum = 960, Increment = 30, Width = 120 };
     private readonly NumericUpDown rest = new() { Minimum = 0, Maximum = 240, Increment = 15, Width = 120 };
     private readonly ListView history = new() { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true };
@@ -23,14 +24,18 @@ internal sealed class SettingsForm : Form
         Text = Words.T("HappyLulu 설정", "HappyLulu Settings");
         Icon = appIcon;
         Font = new Font("Segoe UI", 10);
+        BackColor = UiPalette.Page;
+        AutoScaleMode = AutoScaleMode.Dpi;
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(570, 490);
         MinimumSize = new Size(570, 450);
-        var tabs = new TabControl { Dock = DockStyle.Fill };
+        var tabs = new TabControl { Dock = DockStyle.Fill, Padding = new Point(14, 7) };
         tabs.TabPages.Add(GeneralPage());
         tabs.TabPages.Add(WorkPage());
         tabs.TabPages.Add(HistoryPage());
         Controls.Add(tabs);
+        error.BackColor = UiPalette.Page;
+        error.Padding = new Padding(12, 6, 12, 0);
         Controls.Add(error);
         FormClosing += (_, args) =>
         {
@@ -45,12 +50,10 @@ internal sealed class SettingsForm : Form
 
     private TabPage GeneralPage()
     {
-        var page = new TabPage(Words.T("일반", "General"));
-        var stack = Stack();
-        page.Controls.Add(stack);
+        var page = CardPage(Words.T("일반", "General"), out FlowLayoutPanel stack);
         stack.Controls.Add(new Label
         {
-            Text = "HappyLulu Windows 1.0.0", Font = new Font(Font, FontStyle.Bold),
+            Text = $"HappyLulu Windows {Application.ProductVersion}", Font = new Font(Font, FontStyle.Bold),
             AutoSize = true
         });
         stack.Controls.Add(new Label { Text = Words.T("표시 언어", "Display language"), AutoSize = true });
@@ -69,6 +72,24 @@ internal sealed class SettingsForm : Form
             }
         };
         stack.Controls.Add(language);
+        stack.Controls.Add(new Label { Text = Words.T("퇴근까지 남은 시간 표시", "Remaining time display"), AutoSize = true });
+        remainingUnit.Items.AddRange(new object[]
+        {
+            Words.T("시간/분 (기본)", "Hours/minutes (default)"),
+            Words.T("밀리초", "Milliseconds"), Words.T("초", "Seconds"),
+            Words.T("분", "Minutes"), Words.T("시간", "Hours")
+        });
+        remainingUnit.SelectedIndexChanged += (_, _) =>
+        {
+            if (refreshing || remainingUnit.SelectedIndex < 0) return;
+            if (!controller.SetRemainingTimeUnit((RemainingTimeUnit)remainingUnit.SelectedIndex))
+            {
+                refreshing = true;
+                remainingUnit.SelectedIndex = (int)controller.State.RemainingTimeUnit;
+                refreshing = false;
+            }
+        };
+        stack.Controls.Add(remainingUnit);
         startup.Text = Words.T("Windows 로그인 시 자동 실행", "Start when signing in to Windows");
         startup.CheckedChanged += (_, _) =>
         {
@@ -85,6 +106,7 @@ internal sealed class SettingsForm : Form
             }
         };
         stack.Controls.Add(startup);
+        startup.ForeColor = UiPalette.Ink;
         startupHint.Text = Words.T("이 앱 파일을 옮기면 자동 실행을 다시 설정해야 합니다.",
                                    "Set startup again if you move this portable app.");
         stack.Controls.Add(startupHint);
@@ -95,21 +117,26 @@ internal sealed class SettingsForm : Form
         {
             Text = Words.T("기록은 이 PC에만 저장됩니다. 창을 열어도 자동 실행 설정은 바뀌지 않습니다.",
                            "Records stay on this PC. Opening Settings does not change startup."),
-            AutoSize = true, MaximumSize = new Size(510, 0)
+            AutoSize = true, MaximumSize = new Size(430, 0)
         });
         return page;
     }
 
     private TabPage WorkPage()
     {
-        var page = new TabPage(Words.T("근무", "Work"));
-        var stack = Stack();
-        page.Controls.Add(stack);
+        var page = CardPage(Words.T("근무", "Work"), out FlowLayoutPanel stack);
         stack.Controls.Add(new Label { Text = Words.T("근무 시간 (분)", "Work minutes"), AutoSize = true });
         stack.Controls.Add(work);
         stack.Controls.Add(new Label { Text = Words.T("휴게 시간 (분)", "Break minutes"), AutoSize = true });
         stack.Controls.Add(rest);
-        var apply = new Button { Text = Words.T("근무 시간 저장", "Save work hours"), AutoSize = true };
+        var apply = new Button
+        {
+            Text = Words.T("근무 시간 저장", "Save work hours"), AutoSize = true,
+            BackColor = UiPalette.Mint, ForeColor = Color.White, FlatStyle = FlatStyle.Flat,
+            Padding = new Padding(10, 4, 10, 4)
+        };
+        apply.FlatAppearance.BorderSize = 0;
+        apply.FlatAppearance.MouseOverBackColor = UiPalette.MintDeep;
         apply.Click += (_, _) =>
         {
             if (!controller.SetWork((int)work.Value, (int)rest.Value))
@@ -121,26 +148,45 @@ internal sealed class SettingsForm : Form
         {
             Text = Words.T("일반 근무는 근무·휴게 시간을 더합니다. 매달 마지막 금요일은 2시간 일찍 끝납니다. 반차는 휴게 없이 4시간이며 마지막 금요일 단축과 겹치지 않습니다.",
                            "Full days include work and break. The last Friday ends 2 hours early. Half days last 4 hours without a break or last-Friday reduction."),
-            AutoSize = true, MaximumSize = new Size(510, 0)
+            AutoSize = true, MaximumSize = new Size(430, 0)
         });
         return page;
     }
 
     private TabPage HistoryPage()
     {
-        var page = new TabPage(Words.T("최근 기록", "Recent history"));
+        var page = new TabPage(Words.T("최근 기록", "Recent history"))
+        {
+            BackColor = UiPalette.Page, Padding = new Padding(14)
+        };
+        var card = new RoundedCard(UiPalette.Card) { Dock = DockStyle.Fill, Padding = new Padding(14) };
+        history.BorderStyle = BorderStyle.None;
+        history.BackColor = UiPalette.Card;
+        history.ForeColor = UiPalette.Ink;
         history.Columns.Add(Words.T("날짜", "Date"), 125);
         history.Columns.Add(Words.T("출근", "Arrival"), 90);
         history.Columns.Add(Words.T("유형", "Mode"), 145);
         history.Columns.Add(Words.T("기록 방식", "Source"), 130);
-        page.Controls.Add(history);
+        card.Controls.Add(history);
+        page.Controls.Add(card);
+        return page;
+    }
+
+    private static TabPage CardPage(string title, out FlowLayoutPanel stack)
+    {
+        var page = new TabPage(title) { BackColor = UiPalette.Page, Padding = new Padding(14) };
+        var card = new RoundedCard(UiPalette.Card) { Dock = DockStyle.Fill, Padding = new Padding(10) };
+        stack = Stack();
+        card.Controls.Add(stack);
+        page.Controls.Add(card);
         return page;
     }
 
     private static FlowLayoutPanel Stack() => new()
     {
         Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown,
-        WrapContents = false, AutoScroll = true, Padding = new Padding(20)
+        WrapContents = false, AutoScroll = true, Padding = new Padding(20),
+        BackColor = UiPalette.Card, ForeColor = UiPalette.Ink
     };
 
     public void RefreshView()
@@ -150,6 +196,7 @@ internal sealed class SettingsForm : Form
             SyncStartup();
             refreshing = true;
             language.SelectedIndex = (int)controller.State.Language;
+            remainingUnit.SelectedIndex = (int)controller.State.RemainingTimeUnit;
             work.Value = controller.State.Settings.WorkMinutes;
             rest.Value = controller.State.Settings.BreakMinutes;
             refreshing = false;

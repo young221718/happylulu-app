@@ -62,6 +62,7 @@ internal sealed class AppController
         candidate.Settings.WorkMinutes = work;
         candidate.Settings.BreakMinutes = rest;
     });
+    public bool SetRemainingTimeUnit(RemainingTimeUnit unit) => Apply(candidate => candidate.RemainingTimeUnit = unit);
     public bool SetLanguage(UiLanguage language) => Apply(candidate => candidate.Language = language);
 }
 

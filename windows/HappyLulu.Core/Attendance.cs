@@ -5,6 +5,7 @@ namespace HappyLulu.Core;
 public enum ArrivalSource { Unlock, Manual }
 public enum WorkdayMode { Normal, MorningHalf, AfternoonHalf }
 public enum UiLanguage { System, Korean, English }
+public enum RemainingTimeUnit { HoursMinutes, Milliseconds, Seconds, Minutes, Hours }
 
 public sealed class WorkSettings
 {
@@ -31,6 +32,8 @@ public sealed class AttendanceState
     public DateTimeOffset? LastUnlockAt { get; set; }
     public UiLanguage Language { get; set; } = UiLanguage.System;
 
+    public RemainingTimeUnit RemainingTimeUnit { get; set; } = RemainingTimeUnit.HoursMinutes;
+
     public AttendanceState Copy() => new()
     {
         Version = Version,
@@ -44,8 +47,14 @@ public sealed class AttendanceState
         }, StringComparer.Ordinal),
         SuppressedDays = new HashSet<string>(SuppressedDays, StringComparer.Ordinal),
         LastUnlockAt = LastUnlockAt,
-        Language = Language
+        Language = Language,
+        RemainingTimeUnit = RemainingTimeUnit
     };
+}
+
+public readonly record struct OvertimeStatus(int ElapsedMinutes, int MinutesToMealThreshold)
+{
+    public bool MealThresholdReached => MinutesToMealThreshold == 0;
 }
 
 public static class Attendance
@@ -114,6 +123,22 @@ public static class Attendance
 
     public static int RemainingMinutes(DateTimeOffset departure, DateTimeOffset now) =>
         Math.Max(0, (int)Math.Ceiling((departure - now).TotalMinutes));
+
+    public static DateTimeOffset MealThresholdAt(Arrival arrival, WorkSettings settings) =>
+        Departure(arrival, settings).AddMinutes(120);
+
+    // This is a time guide from planned departure, not evidence of actual work or reimbursement approval.
+    public static OvertimeStatus? Overtime(AttendanceState state, DateTimeOffset now)
+    {
+        string day = DayKey(now);
+        if (state.SuppressedDays.Contains(day) || !state.Arrivals.TryGetValue(day, out Arrival? arrival))
+            return null;
+        DateTimeOffset departure = Departure(arrival, state.Settings);
+        if (now < departure) return null;
+        int elapsed = (int)Math.Floor((now - departure).TotalMinutes);
+        int toMeal = Math.Max(0, (int)Math.Ceiling((MealThresholdAt(arrival, state.Settings) - now).TotalMinutes));
+        return new OvertimeStatus(elapsed, toMeal);
+    }
 
     public static double Progress(Arrival arrival, DateTimeOffset departure, DateTimeOffset now)
     {

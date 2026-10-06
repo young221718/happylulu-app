@@ -47,17 +47,79 @@ Check(rejected, "future manual arrival rejected");
 Check(Attendance.IsLastFriday(At(2026, 10, 30, 9, 0)), "last Friday identified");
 Check(!Attendance.IsLastFriday(At(2026, 10, 23, 9, 0)), "ordinary Friday identified");
 
+var overtimeState = new AttendanceState();
+Check(Attendance.Overtime(overtimeState, At(2026, 10, 6, 18, 31)) is null,
+      "no overtime guide without an arrival");
+Attendance.SetManual(overtimeState, At(2026, 10, 6, 9, 0),
+                     At(2026, 10, 6, 9, 30), WorkdayMode.Normal);
+DateTimeOffset planned = Attendance.Departure(overtimeState.Arrivals["2026-10-06"], overtimeState.Settings);
+Check(Attendance.MealThresholdAt(overtimeState.Arrivals["2026-10-06"], overtimeState.Settings) ==
+      At(2026, 10, 6, 20, 0), "meal threshold clock follows planned departure by two hours");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(-1)) is null,
+      "no overtime guide before departure");
+Check(Attendance.Overtime(overtimeState, planned) == new OvertimeStatus(0, 120),
+      "meal countdown starts at planned departure");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(30).AddSeconds(-1)) == new OvertimeStatus(29, 91),
+      "before thirty minutes meal guide remains but extra display threshold is unmet");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(30)) == new OvertimeStatus(30, 90),
+      "thirty-minute boundary uses floor elapsed and ceil meal countdown");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(31).AddSeconds(59)) == new OvertimeStatus(31, 89),
+      "elapsed minutes floor while meal countdown rounds up");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(119).AddSeconds(1)) == new OvertimeStatus(119, 1),
+      "meal countdown remains one until exact threshold");
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(120)) is { MealThresholdReached: true, MinutesToMealThreshold: 0 },
+      "meal time threshold reached at two hours");
+Attendance.SkipToday(overtimeState, At(2026, 10, 6, 19, 0));
+Check(Attendance.Overtime(overtimeState, planned.AddMinutes(121)) is null,
+      "day off removes overtime guide");
+var fridayStatus = Attendance.Overtime(state, At(2026, 10, 30, 16, 1));
+Check(fridayStatus == new OvertimeStatus(31, 89), "last Friday overtime uses shortened departure");
+var halfStatus = Attendance.Overtime(state, At(2026, 10, 4, 13, 31));
+Check(halfStatus == new OvertimeStatus(31, 89), "half-day overtime uses four-hour departure");
+
+var displayNow = At(2026, 10, 6, 9, 0);
+var displayLeave = displayNow.AddHours(1).AddMinutes(1).AddMilliseconds(1);
+Check(new AttendanceState().RemainingTimeUnit == RemainingTimeUnit.HoursMinutes, "default display remains hours/minutes");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.HoursMinutes, true) == "1시간 2분", "default minutes round up across fractional boundary");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Hours, false) == "2 h", "hours round up");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Minutes, false) == "62 min", "minutes round up");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Seconds, true) == "3661초", "seconds round up");
+Check(RemainingTimeDisplay.Format(displayNow.AddMilliseconds(100), displayNow, RemainingTimeUnit.Milliseconds, false) == "100 ms", "milliseconds use actual remaining duration");
+foreach (var unit in Enum.GetValues<RemainingTimeUnit>())
+{
+    Check(RemainingTimeDisplay.Format(displayNow, displayNow.AddHours(1), unit, false).StartsWith("0"), "elapsed countdown clamps to zero: " + unit);
+    Check(RemainingTimeDisplay.Format(displayNow.AddTicks(1), displayNow, unit, false).StartsWith(unit == RemainingTimeUnit.HoursMinutes ? "0h 1m" : "1"), "positive fraction never appears expired: " + unit);
+}
+Check(RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, true) == 100 &&
+      RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, false) == 1000 &&
+      RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Seconds, true) == 1000,
+      "fast timer only while millisecond countdown active");
+
 string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "happylulu-checks-" + Guid.NewGuid().ToString("N"));
 try
 {
     var store = new StateStore(System.IO.Path.Combine(root, "state.json"));
     state.Language = UiLanguage.Korean;
+    state.RemainingTimeUnit = RemainingTimeUnit.Seconds;
     store.Save(state);
     var loaded = store.Load();
     Check(loaded.Arrivals.Count == state.Arrivals.Count && loaded.SuppressedDays.SetEquals(state.SuppressedDays),
           "local state round trip");
     Check(loaded.Language == UiLanguage.Korean, "language preference round trip");
+    Check(loaded.RemainingTimeUnit == RemainingTimeUnit.Seconds && loaded.Copy().RemainingTimeUnit == RemainingTimeUnit.Seconds,
+          "remaining unit persists and survives copy");
     string original = File.ReadAllText(store.Path);
+    var legacy = System.Text.Json.Nodes.JsonNode.Parse(original)!;
+    legacy.AsObject().Remove("RemainingTimeUnit");
+    File.WriteAllText(store.Path, legacy.ToJsonString());
+    Check(store.Load().RemainingTimeUnit == RemainingTimeUnit.HoursMinutes, "legacy state defaults without migration");
+    File.WriteAllText(store.Path, original);
+    var invalidUnit = loaded.Copy();
+    invalidUnit.RemainingTimeUnit = (RemainingTimeUnit)999;
+    rejected = false;
+    try { store.Save(invalidUnit); }
+    catch (InvalidDataException) { rejected = true; }
+    Check(rejected && File.ReadAllText(store.Path) == original, "invalid display preference preserves saved file");
     var invalid = loaded.Copy();
     invalid.Settings.WorkMinutes = 0;
     rejected = false;
