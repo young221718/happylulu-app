@@ -7,6 +7,7 @@ internal sealed class SettingsForm : Form
 {
     private readonly AppController controller;
     private readonly ComboBox language = new() { Width = 250, DropDownStyle = ComboBoxStyle.DropDownList };
+    private readonly ComboBox remainingUnit = new() { Width = 250, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly CheckBox startup = new() { AutoSize = true };
     private readonly Label startupHint = new() { AutoSize = true, MaximumSize = new Size(430, 0) };
     private readonly TextBox dataPath = new() { ReadOnly = true, Width = 420 };
@@ -71,6 +72,24 @@ internal sealed class SettingsForm : Form
             }
         };
         stack.Controls.Add(language);
+        stack.Controls.Add(new Label { Text = Words.T("퇴근까지 남은 시간 표시", "Remaining time display"), AutoSize = true });
+        remainingUnit.Items.AddRange(new object[]
+        {
+            Words.T("시간/분 (기본)", "Hours/minutes (default)"),
+            Words.T("밀리초", "Milliseconds"), Words.T("초", "Seconds"),
+            Words.T("분", "Minutes"), Words.T("시간", "Hours")
+        });
+        remainingUnit.SelectedIndexChanged += (_, _) =>
+        {
+            if (refreshing || remainingUnit.SelectedIndex < 0) return;
+            if (!controller.SetRemainingTimeUnit((RemainingTimeUnit)remainingUnit.SelectedIndex))
+            {
+                refreshing = true;
+                remainingUnit.SelectedIndex = (int)controller.State.RemainingTimeUnit;
+                refreshing = false;
+            }
+        };
+        stack.Controls.Add(remainingUnit);
         startup.Text = Words.T("Windows 로그인 시 자동 실행", "Start when signing in to Windows");
         startup.CheckedChanged += (_, _) =>
         {
@@ -177,6 +196,7 @@ internal sealed class SettingsForm : Form
             SyncStartup();
             refreshing = true;
             language.SelectedIndex = (int)controller.State.Language;
+            remainingUnit.SelectedIndex = (int)controller.State.RemainingTimeUnit;
             work.Value = controller.State.Settings.WorkMinutes;
             rest.Value = controller.State.Settings.BreakMinutes;
             refreshing = false;

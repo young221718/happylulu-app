@@ -45,6 +45,15 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                Picker(L("퇴근까지 남은 시간 표시", "Countdown display"), selection: Binding(
+                    get: { model.countdownDisplay }, set: { model.setCountdownDisplay($0) })) {
+                    ForEach(CountdownDisplay.allCases, id: \.self) { choice in
+                        Text(choice.displayLabel).tag(choice)
+                    }
+                }
+                .pickerStyle(.menu)
+                Text(L("선택한 단위로 올림 표시합니다. 밀리초는 0.1초마다 갱신합니다.", "Values round up to the selected unit. Milliseconds refresh every 0.1 seconds."))
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle(L("로그인 시 자동 실행", "Launch at login"), isOn: Binding(
                     get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
                     .toggleStyle(.switch)

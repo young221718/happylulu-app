@@ -117,9 +117,9 @@ struct PanelView: View {
                 Text(minutes == 0
                      ? extraMinutes.map(model.extraLabel)
                          ?? L("오늘도 수고했어요", "Great work today")
-                     : model.duration(minutes))
+                     : model.countdownText)
                     .font(.system(size: 29, weight: .semibold, design: .rounded)).monospacedDigit()
-                    .lineLimit(1).minimumScaleFactor(0.75)
+                    .lineLimit(1).minimumScaleFactor(0.5)
                 Text(extraMinutes != nil ? L("예정 퇴근 이후 경과 시간", "Elapsed after scheduled departure")
                      : minutes == 0 ? L("오늘의 퇴근 시간이 됐어요.", "It’s time to go home.")
                      : L("퇴근까지 남았어요", "Time until departure"))

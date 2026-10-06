@@ -89,6 +89,8 @@ internal sealed class TrayContext : ApplicationContext
         DateTimeOffset now = DateTimeOffset.Now;
         Arrival? arrival = Attendance.Today(controller.State, now);
         OvertimeStatus? overtime = Attendance.Overtime(controller.State, now);
+        DateTimeOffset? departure = arrival is null ? null : Attendance.Departure(arrival, controller.State.Settings);
+        timer.Interval = RemainingTimeDisplay.RefreshInterval(controller.State.RemainingTimeUnit, departure > now);
         string title = overtime is { ElapsedMinutes: >= 30 } status
             ? Words.T($"추가 {status.ElapsedMinutes}분 중", $"Extra {status.ElapsedMinutes} min in progress")
             : arrival is null
@@ -97,11 +99,11 @@ internal sealed class TrayContext : ApplicationContext
                 : Words.T("출근 대기", "Waiting for arrival"))
                 : Attendance.RemainingMinutes(Attendance.Departure(arrival, controller.State.Settings), now) == 0
                     ? Words.T("예정 퇴근 시각 지남", "Planned departure passed")
-                    : Words.T("퇴근 ", "Leave in ") + Words.Duration(Attendance.RemainingMinutes(
-                        Attendance.Departure(arrival, controller.State.Settings), now));
+                    : Words.T("퇴근 ", "Leave in ") + RemainingTimeDisplay.Format(departure!.Value, now, controller.State.RemainingTimeUnit, Words.Korean);
         string tooltip = "HappyLulu · " + title;
-        tray.Text = tooltip.Length <= 63 ? tooltip : tooltip[..63];
-        if (today is { IsDisposed: false, Visible: true }) today.RefreshView();
+        string displayedTooltip = tooltip.Length <= 63 ? tooltip : tooltip[..63];
+        if (tray.Text != displayedTooltip) tray.Text = displayedTooltip;
+        if (today is { IsDisposed: false, Visible: true }) today.RefreshView(now);
     }
 
     private void LocalizeMenu()

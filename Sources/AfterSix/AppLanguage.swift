@@ -184,3 +184,16 @@ extension WorkdayMode {
         }
     }
 }
+
+
+extension CountdownDisplay {
+    var displayLabel: String {
+        switch self {
+        case .milliseconds: L("밀리초", "Milliseconds")
+        case .seconds: L("초", "Seconds")
+        case .minutes: L("분", "Minutes")
+        case .hours: L("시", "Hours")
+        case .hoursMinutes: L("시/분 (기본)", "Hours/minutes (default)")
+        }
+    }
+}

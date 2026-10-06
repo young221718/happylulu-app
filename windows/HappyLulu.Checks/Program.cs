@@ -77,17 +77,49 @@ Check(fridayStatus == new OvertimeStatus(31, 89), "last Friday overtime uses sho
 var halfStatus = Attendance.Overtime(state, At(2026, 10, 4, 13, 31));
 Check(halfStatus == new OvertimeStatus(31, 89), "half-day overtime uses four-hour departure");
 
+var displayNow = At(2026, 10, 6, 9, 0);
+var displayLeave = displayNow.AddHours(1).AddMinutes(1).AddMilliseconds(1);
+Check(new AttendanceState().RemainingTimeUnit == RemainingTimeUnit.HoursMinutes, "default display remains hours/minutes");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.HoursMinutes, true) == "1시간 2분", "default minutes round up across fractional boundary");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Hours, false) == "2 h", "hours round up");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Minutes, false) == "62 min", "minutes round up");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Seconds, true) == "3661초", "seconds round up");
+Check(RemainingTimeDisplay.Format(displayNow.AddMilliseconds(100), displayNow, RemainingTimeUnit.Milliseconds, false) == "100 ms", "milliseconds use actual remaining duration");
+foreach (var unit in Enum.GetValues<RemainingTimeUnit>())
+{
+    Check(RemainingTimeDisplay.Format(displayNow, displayNow.AddHours(1), unit, false).StartsWith("0"), "elapsed countdown clamps to zero: " + unit);
+    Check(RemainingTimeDisplay.Format(displayNow.AddTicks(1), displayNow, unit, false).StartsWith(unit == RemainingTimeUnit.HoursMinutes ? "0h 1m" : "1"), "positive fraction never appears expired: " + unit);
+}
+Check(RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, true) == 100 &&
+      RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, false) == 1000 &&
+      RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Seconds, true) == 1000,
+      "fast timer only while millisecond countdown active");
+
 string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "happylulu-checks-" + Guid.NewGuid().ToString("N"));
 try
 {
     var store = new StateStore(System.IO.Path.Combine(root, "state.json"));
     state.Language = UiLanguage.Korean;
+    state.RemainingTimeUnit = RemainingTimeUnit.Seconds;
     store.Save(state);
     var loaded = store.Load();
     Check(loaded.Arrivals.Count == state.Arrivals.Count && loaded.SuppressedDays.SetEquals(state.SuppressedDays),
           "local state round trip");
     Check(loaded.Language == UiLanguage.Korean, "language preference round trip");
+    Check(loaded.RemainingTimeUnit == RemainingTimeUnit.Seconds && loaded.Copy().RemainingTimeUnit == RemainingTimeUnit.Seconds,
+          "remaining unit persists and survives copy");
     string original = File.ReadAllText(store.Path);
+    var legacy = System.Text.Json.Nodes.JsonNode.Parse(original)!;
+    legacy.AsObject().Remove("RemainingTimeUnit");
+    File.WriteAllText(store.Path, legacy.ToJsonString());
+    Check(store.Load().RemainingTimeUnit == RemainingTimeUnit.HoursMinutes, "legacy state defaults without migration");
+    File.WriteAllText(store.Path, original);
+    var invalidUnit = loaded.Copy();
+    invalidUnit.RemainingTimeUnit = (RemainingTimeUnit)999;
+    rejected = false;
+    try { store.Save(invalidUnit); }
+    catch (InvalidDataException) { rejected = true; }
+    Check(rejected && File.ReadAllText(store.Path) == original, "invalid display preference preserves saved file");
     var invalid = loaded.Copy();
     invalid.Settings.WorkMinutes = 0;
     rejected = false;

@@ -221,6 +221,10 @@ internal sealed class TodayForm : Form
 
     private void ResizeMessages()
     {
+        heading.Height = WrappedHeight(heading, 61);
+        subheading.Top = heading.Bottom + 5;
+        progress.Top = subheading.Bottom + 16;
+        hero.Height = progress.Bottom + 18;
         if (overtimeCard.Visible)
         {
             mealStatus.Height = WrappedHeight(mealStatus, 42);
@@ -231,9 +235,9 @@ internal sealed class TodayForm : Form
         if (errorLabel.Visible) errorLabel.Height = WrappedHeight(errorLabel, 42);
     }
 
-    public void RefreshView()
+    public void RefreshView(DateTimeOffset? snapshot = null)
     {
-        DateTimeOffset now = DateTimeOffset.Now;
+        DateTimeOffset now = snapshot ?? DateTimeOffset.Now;
         Arrival? arrival = Attendance.Today(controller.State, now);
         bool skipped = controller.State.SuppressedDays.Contains(Attendance.DayKey(now));
         dateLabel.Text = Words.Korean
@@ -258,7 +262,7 @@ internal sealed class TodayForm : Form
             DateTimeOffset leave = Attendance.Departure(arrival, controller.State.Settings);
             int left = Attendance.RemainingMinutes(leave, now);
             eyebrow.Text = Words.T("퇴근까지", "TIME TO GO HOME");
-            heading.Text = left == 0 ? Words.T("오늘도 수고했어요", "Great work today") : Words.Duration(left);
+            heading.Text = left == 0 ? Words.T("오늘도 수고했어요", "Great work today") : RemainingTimeDisplay.Format(leave, now, controller.State.RemainingTimeUnit, Words.Korean);
             subheading.Text = left == 0 ? Words.T("예정 퇴근 시각이 지났어요.", "The planned departure time has passed.")
                                         : Words.T("퇴근까지 남았어요", "Time until planned departure");
             arrivalTime.Text = arrival.Time.ToString("HH:mm", CultureInfo.InvariantCulture);

@@ -51,7 +51,7 @@ public sealed class StateStore(string path)
     public static void Validate(AttendanceState state)
     {
         if (state.Version != 1 || state.Settings is null || !state.Settings.IsValid ||
-            !Enum.IsDefined(state.Language) ||
+            !Enum.IsDefined(state.Language) || !Enum.IsDefined(state.RemainingTimeUnit) ||
             state.Arrivals is null || state.SuppressedDays is null)
             throw new InvalidDataException("Attendance file has invalid settings or version.");
         foreach (var (key, arrival) in state.Arrivals)

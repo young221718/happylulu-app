@@ -5,6 +5,7 @@ namespace HappyLulu.Core;
 public enum ArrivalSource { Unlock, Manual }
 public enum WorkdayMode { Normal, MorningHalf, AfternoonHalf }
 public enum UiLanguage { System, Korean, English }
+public enum RemainingTimeUnit { HoursMinutes, Milliseconds, Seconds, Minutes, Hours }
 
 public sealed class WorkSettings
 {
@@ -31,6 +32,8 @@ public sealed class AttendanceState
     public DateTimeOffset? LastUnlockAt { get; set; }
     public UiLanguage Language { get; set; } = UiLanguage.System;
 
+    public RemainingTimeUnit RemainingTimeUnit { get; set; } = RemainingTimeUnit.HoursMinutes;
+
     public AttendanceState Copy() => new()
     {
         Version = Version,
@@ -44,7 +47,8 @@ public sealed class AttendanceState
         }, StringComparer.Ordinal),
         SuppressedDays = new HashSet<string>(SuppressedDays, StringComparer.Ordinal),
         LastUnlockAt = LastUnlockAt,
-        Language = Language
+        Language = Language,
+        RemainingTimeUnit = RemainingTimeUnit
     };
 }
 

@@ -1,7 +1,7 @@
 # HappyLulu
 
 
-The development candidate is **Mac 1.5.3 build11**, with extra elapsed minutes after 30 minutes and the meal time threshold two hours after scheduled departure. This does not verify work or approve payment. The public download remains 1.5.2.
+The development candidate is **Mac 1.5.4 build12**, with extra elapsed minutes after 30 minutes and the meal time threshold two hours after scheduled departure. This does not verify work or approve payment. The public download remains 1.5.2.
 
 [Mac release notes (Korean)](RELEASE-NOTES.md) · [Windows release notes (Korean)](windows/RELEASE-NOTES.md)
 
@@ -44,3 +44,5 @@ Updates are installed manually. Signed automatic-update activation is paused. Ap
 Mac records stay in `~/Library/Application Support/AfterSix/state.json`; no attendance telemetry or keyboard/screen collection is added. The Windows storage path and build commands are documented in its own README. Do not delete or replace state files to update the application.
 
 [Validation evidence and remaining device tests (Korean)](VALIDATION.md) · [Update status (Korean)](UPDATES.md).
+
+Countdown display in Settings supports milliseconds, seconds, minutes, hours, and hours/minutes (default). Values round up to the selected unit in both the menu bar and today panel. Milliseconds refresh every 0.1 seconds during the countdown; other modes refresh every second. The choice persists after restart.
