@@ -1,6 +1,6 @@
 # HappyLulu for Windows 1.2.0
 
-Development candidate. The public download remains 1.0.0. Adds light cards, extra elapsed time and the meal time threshold after scheduled departure; it does not verify work or approve payment.
+The latest version is 1.2.0. Adds light cards, extra elapsed time and the meal time threshold after scheduled departure; it does not verify work or approve payment.
 
 HappyLulu runs in the Windows notification area. Left-click its icon for today's arrival, estimated departure, manual entry, and day-off action. Right-click to open the separate Settings window or exit. In Settings, choose System, Korean, or English; the preference is saved locally and the open windows and tray text refresh.
 

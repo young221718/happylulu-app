@@ -1,7 +1,7 @@
 # HappyLulu
 
 
-The development candidate is **Mac 1.5.4 build12**, with extra elapsed minutes after 30 minutes and the meal time threshold two hours after scheduled departure. This does not verify work or approve payment. The public download remains 1.5.2.
+The latest version is **Mac 1.5.4 build12**, with extra elapsed minutes after 30 minutes and the meal time threshold two hours after scheduled departure. This does not verify work or approve payment. Selectable countdown units are also included.
 
 [Mac release notes (Korean)](RELEASE-NOTES.md) · [Windows release notes (Korean)](windows/RELEASE-NOTES.md)
 

@@ -1,7 +1,7 @@
 # HappyLulu
 
 
-개발 후보는 **Mac 1.5.4 build12**입니다. 예정 퇴근 30분 이후 추가 경과 분과 2시간 식대 시간 기준을 표시합니다. 시간 안내이며 실제 근무·지급 승인 여부를 확인하지 않습니다. 공개 다운로드는 아직 1.5.2입니다.
+최신 버전은 **Mac 1.5.4 build12**입니다. 예정 퇴근 30분 이후 추가 경과 분과 2시간 식대 시간 기준을 표시합니다. 시간 안내이며 실제 근무·지급 승인 여부를 확인하지 않습니다. 시간 표시 단위 선택도 포함합니다.
 
 [English](README.en.md) · [영어 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/en/)
 
@@ -9,7 +9,7 @@
 
 맥의 첫 잠금 해제로 출근을 기록하고, 메뉴바에서 퇴근까지 남은 시간을 확인하는 룰루랩 동료용 앱입니다. 회사의 공식 근태 시스템이나 급여용 증빙은 아닙니다.
 
-**현재 배포: 1.5.2 build 10 · macOS 13 이상 · Apple Silicon 권장**
+**현재 배포: 1.5.4 build 12 · macOS 13 이상 · Apple Silicon 권장**
 
 [소개·다운로드·설치](https://happylulu.cy-choi-lulu.chatgpt.site/) · [Mac 릴리즈 노트](RELEASE-NOTES.md) · [Windows 릴리즈 노트](windows/RELEASE-NOTES.md) · [실제 내부 시험](https://github.com/young221718/happylulu-app/issues/4)
 
