@@ -101,6 +101,9 @@ private func run() throws -> Int {
         previous
     ); count += 1
 
+    try check(SyncPlanner.plan(mapping: mapped(), daou: .absent, google: .absent) == .held(.unverifiedAbsence),
+              "an empty initial pair must not write"); count += 1
+
     let unpairedSameTitle = SyncPlanner.plan(mapping: mapped(), daou: .present(old), google: .present(oldGoogle))
     guard case let .conflict(conflict) = unpairedSameTitle else { throw CheckError.failed("initial matching title should not be auto-paired") }
     try check(conflict.reason == .initialPairAmbiguous, "wrong initial-pair reason"); count += 1
