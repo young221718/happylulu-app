@@ -15,10 +15,10 @@ let info = try PropertyListSerialization.propertyList(from: Data(contentsOf:
     appURL.appendingPathComponent("Contents/Info.plist")), format: nil) as! [String: Any]
 let publicKey = try Curve25519.Signing.PublicKey(rawRepresentation:
     Data(base64Encoded: info["SUPublicEDKey"] as! String)!)
-require(info["SUAutomaticallyUpdate"] as? Bool == false,
-        "Production app must ask before downloading and installing updates")
-require(info["SUAllowsAutomaticUpdates"] as? Bool == false,
-        "Sparkle must not offer automatic-install opt-in")
+require(info["SUAutomaticallyUpdate"] as? Bool == true,
+        "Production app defaults to automatic download and installation")
+require(info["SUAllowsAutomaticUpdates"] as? Bool == true,
+        "Sparkle must allow automatic installation")
 if !configurationOnly {
 let document = try XMLDocument(contentsOf: feedURL)
 let enclosure = try document.nodes(forXPath: "//item/enclosure").first as! XMLElement
@@ -86,7 +86,7 @@ require(!updater.automaticallyChecksForUpdates && !updater.automaticallyDownload
         "Settings must honor the isolated user preference defaults")
 updater.automaticallyChecksForUpdates = true
 updater.automaticallyDownloadsUpdates = true
-require(updater.automaticallyChecksForUpdates && !updater.automaticallyDownloadsUpdates,
-        "Automatic download opt-in must be disallowed even with automatic checks")
+require(updater.automaticallyChecksForUpdates && updater.automaticallyDownloadsUpdates,
+        "Automatic download opt-in must work with automatic checks")
 updater.automaticallyChecksForUpdates = false
-print("PASS Sparkle startup and confirmation-based update defaults in an isolated domain")
+print("PASS Sparkle startup and automatic update opt-in and opt-out in an isolated domain")

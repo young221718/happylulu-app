@@ -81,7 +81,7 @@ struct SettingsView: View {
                         Text(displayClock(record.time,
                             timeZone: TimeZone(identifier: record.timeZoneID) ?? .current))
                             .monospacedDigit()
-                        Image(systemName: record.source == .unlock ? "lock.open" : "pencil")
+                        Image(systemName: record.source == .manual ? "pencil" : (record.source == .login ? "power" : "lock.open"))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -140,13 +140,17 @@ struct SettingsView: View {
     private var updatesSection: some View {
         GroupBox(L("업데이트 · \(updater.version)", "Updates · \(updater.version)")) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(L("서명된 업데이트 목록 게시를 준비 중입니다. 현재는 다운로드 사이트에서 앱을 받아 수동으로 교체해 주세요.", "A signed update feed is being prepared. For now, download the app from the website and replace it manually."))
+                Text(L("서명된 새 버전을 앱에서 받아 설치합니다. 출근 기록과 설정은 유지됩니다.", "Downloads and installs signed updates in the app, preserving your records and settings."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(L("새 버전 자동 확인", "Automatically check for updates"), isOn: Binding(
                     get: { updater.automaticallyChecks },
                     set: { updater.setAutomaticallyChecks($0) }))
                     .disabled(!updater.canCheckForUpdates)
-                Text(L("자동 확인을 켜면 1시간마다 새 버전을 찾습니다. 새 버전이 있으면 먼저 업데이트할지 묻고, 업데이트를 선택하면 다운로드·설치 후 필요할 때 앱을 다시 시작합니다.", "When enabled, checks for updates hourly. You will be asked before downloading and installing a new version; the app may restart afterward."))
+                Toggle(L("자동 다운로드 및 설치", "Automatically download and install"), isOn: Binding(
+                    get: { updater.automaticallyInstalls },
+                    set: { updater.setAutomaticallyInstalls($0) }))
+                    .disabled(!updater.canCheckForUpdates || updater.isPreparingInstallation || !updater.automaticallyChecks)
+                Text(L("자동 확인을 켜면 1시간마다 새 버전을 찾습니다. 자동 설치를 켜면 창을 닫고 출근 처리·캘린더 동기화가 끝난 뒤 앱이 자동으로 재시작됩니다. 끄면 설치 전에 확인합니다. 설치 준비가 끝나면 재시작까지 설정을 잠시 바꿀 수 없습니다.", "When enabled, checks for updates hourly. With automatic installation on, the app restarts after its windows are closed and attendance/calendar work has finished. Otherwise, installation asks for confirmation. Once installation is prepared, settings are locked until restart."))
                     .foregroundStyle(.secondary)
                 Button(L("지금 업데이트 확인", "Check for updates now")) { updater.checkForUpdates() }
                     .disabled(!updater.canCheckForUpdates)

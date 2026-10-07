@@ -134,3 +134,26 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - Universal Mac 패키지 생성/무결성과 이 후보의 실제 Windows CI는 진행 중이며 완료 증거를 뒤에 추가한다. 설치 앱/실제 출근 기록은 변경하지 않았다.
 
 완료 증거: 기능 소스5827f3eebd457ba0061474db2de27ab771693d2e의 실제 Windows runner [36993469659](https://github.com/young221718/happylulu-app/actions/runs/36993469659)는 completed/success. 코어 검사, 런타임 포함·별도 publish, 두 ZIP 생성과 artifact 업로드 모두 success. Mac1.5.3 build11 Universal 패키지 생성 완료 및 verify-release.py 통과: plist/한영 권한 리소스/두 아키텍처/체크섬/ZIP·읽기 전용 DMG의 모든 파일·심볼릭 링크/서명 확인. x86_64 링크의 CompatibilityPacks 경고가 있었지만 빌드는 성공했으며 Intel 실기기 시험으로 대신하지 않는다. 후보 산출물은 ignored dist에 보존하고 Git에는 넣지 않았다.
+
+## 2026-10-07 · Mac 1.5.6 build14 로그인 출근 누락 수정 (#13)
+
+- 최신 main `f7712de` 위에 구현하여 소수 시간 표시 수정을 보존했습니다.
+- `swift run --build-system native --skip-update AfterSixChecks`: 기존 31개 검사와 표시 형식/선택 유지, 로그인 이벤트 판별·출근 경계·캘린더 반차·기존 기록/수동 수정/쉬는 날 보존·새 날짜·출처 저장 왕복 검사 통과.
+- `bash scripts/check-login-launch.sh`: 실사용 앱/기록과 분리한 임시 AppKit 앱을 LaunchServices로 열어 will/didFinishLaunching에서 로그인 표시 true, 일반 수동/서비스 시작 false 확인. 생성된 이벤트를 사용한 통합 검사이며 실제 SMAppService 부팅 실행 검증은 아닙니다. 환경의 sandbox extension 경고는 있었으나 세 경우 모두 결과 파일을 읽어 판정을 확인했습니다.
+- `bash scripts/build-app.sh`: Apple Silicon Release 앱 빌드, ad-hoc 서명 및 deep/strict 검증 통과. 기존 native 빌드 엔진 폐기 예정 경고 유지.
+- 설치된 기존 1.5.4의 read-only `--status`를 샌드박스 밖에서 확인하여 로그인 자동 실행 enabled(1) 확인. 샌드박스 안의 notFound(3)는 실제 등록 상태의 근거로 사용하지 않음.
+- 실제 부팅·로그인과 이후 잠금 해제, Intel 기기 검증은 미완료. 사용자 Mac을 로그아웃·잠금·재부팅하지 않았습니다.
+- 독립 GPT-6 Sol/xhigh 리뷰에서 차단 결함 없음. 로그인 기록 후 잠금 해제 이력이 없을 때 대기 중으로 보이던 문구를 수정하고 재검토 완료. 구버전은 새 login 출처를 해석하지 못하므로 원본을 보존하고 저장을 중지한다는 복귀 제한을 README에 명시했습니다.
+- 로컬 `~/Applications/HappyLulu.app`를 1.5.6 build14로 교체하고 이전 1.5.4 앱을 백업했습니다. 설치 실행 파일은 빌드와 SHA-256 일치, 서명 검증·실행 프로세스·로그인 등록 enabled(1) 확인. 교체 전후 AfterSix/state.json의 SHA-256이 같아 기록 파일 보존 확인. 원격 main/공개 다운로드에는 이번 수정 미반영.
+
+## 2026-10-07 · 자동 업데이트 활성화 1.5.9 build17
+
+사용자가 자동 다운로드·설치와 사이트 배포를 요청해 #3 보류를 재개했습니다. 기존 로그인 수정도 포함합니다.
+
+- Sparkle 자동 확인/설치 기본값 활성화. 기존 저장된 사용자 선택은 보존하며 설정에서 변경 가능.
+- 설치 준비 완료부터 설정을 잠시 잠그고, 출근/캘린더 처리 및 앱 창 사용 중에는 재시작을 미룹니다. 설치 중복 호출을 차단하고 실제 종료 취소에만 재시도하며 모든 종료/오류 콜백에서 잠금을 정리합니다. 일반 사용자 종료는 막지 않습니다.
+- 독립 Sol/xhigh 리뷰의 설정 변경·실패 복구·중복 설치 지적을 수정하고 최종 focused review에서 차단 문제 없음 확인.
+- 실제 AppUpdater.swift를 격리 앱으로 컴파일한 scripts/check-automatic-install.sh 통과: 3개 Objective-C delegate selector, busy/idle, 설정 잠금, 설치 중복 방지, 종료 취소 재시도, abort 및 authorize-later에 해당하는 finished-cycle 정리, opt-out.
+- AppUpdateChecks의 실제 Sparkle 시작과 자동 다운로드 opt-in/opt-out 검사 통과. Universal arm64/x86_64 앱 빌드·ad-hoc 서명 검증 완료. 미게시 초기 후보는 rejected-candidates에 보존하고 최종 코드를 다시 빌드했습니다.
+- 기존 키체인 sign_update로 시험 파일 서명은 성공. 최종 ZIP 서명은 키체인 단계 대기 중이며 서명 완료·공개 feed 게시·실제 자동 설치는 아직 미검증입니다.
+- Developer ID 공증과 Intel 실기기 시험은 별도 미완료입니다.

@@ -19,9 +19,11 @@ final class AppModel: ObservableObject {
     private let halfDayCalendar = HalfDayCalendarReader()
     private var calendarModeDay: String?
     private var lastCalendarCheckAt: Date?
-    private var pendingUnlocks: [Date] = []
-    private var processingUnlocks = false
+    private var pendingArrivals: [(at: Date, isLogin: Bool)] = []
+    private var processingArrivals = false
     private var calendarDetectionRequestGeneration = 0
+
+    var isProcessingAttendance: Bool { processingArrivals }
 
     var calendar: Calendar { Calendar.current }
     var arrival: Arrival? { Attendance.today(in: state, now: now, calendar: calendar) }
@@ -99,7 +101,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func start() {
+    func start(loginObservedAt: Date? = nil) {
         // This notification is used by macOS but is not a documented Apple API.
         // A wake/session-active notification must never be treated as an unlock.
         DistributedNotificationCenter.default().addObserver(
@@ -110,6 +112,7 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(woke(_:)), name: NSWorkspace.didWakeNotification, object: nil
         )
+        if let loginObservedAt { enqueueArrival(at: loginObservedAt, isLogin: true) }
         startCountdownTimer()
         if state.detectHalfDaysFromCalendar { Task { await refreshCalendarHalfDay(force: true) } }
         // Register once; never fight a user's later System Settings choice.
@@ -139,17 +142,21 @@ final class AppModel: ObservableObject {
     @objc private func woke(_ notification: Notification) { refresh() }
 
     @objc private func screenUnlocked(_ notification: Notification) {
-        let receivedAt = Date()
-        now = receivedAt
-        pendingUnlocks.append(receivedAt)
-        guard !processingUnlocks else { return }
-        processingUnlocks = true
-        Task { await processPendingUnlocks() }
+        enqueueArrival(at: Date(), isLogin: false)
     }
 
-    private func processPendingUnlocks() async {
-        while !pendingUnlocks.isEmpty {
-            let receivedAt = pendingUnlocks.removeFirst()
+    private func enqueueArrival(at receivedAt: Date, isLogin: Bool) {
+        now = receivedAt
+        pendingArrivals.append((receivedAt, isLogin))
+        guard !processingArrivals else { return }
+        processingArrivals = true
+        Task { await processPendingArrivals() }
+    }
+
+    private func processPendingArrivals() async {
+        while !pendingArrivals.isEmpty {
+            let event = pendingArrivals.removeFirst()
+            let receivedAt = event.at
             var observation = CalendarModeObservation.confirmed(nil)
             if state.detectHalfDaysFromCalendar {
                 do {
@@ -161,19 +168,24 @@ final class AppModel: ObservableObject {
                 }
             }
             // A setting change while EventKit was pending takes effect before
-            // this arrival is saved; FIFO keeps the first observed unlock first.
+            // this arrival is saved; FIFO keeps the first observed login/unlock first.
             let detected = state.detectHalfDaysFromCalendar
                 ? observation.resolved(previous: detectedModeToday) : nil
             commit { state in
-                Attendance.recordUnlock(in: &state, at: receivedAt, calendar: calendar,
-                                        calendarMode: detected)
+                if event.isLogin {
+                    Attendance.recordLogin(in: &state, at: receivedAt, calendar: calendar,
+                                           calendarMode: detected)
+                } else {
+                    Attendance.recordUnlock(in: &state, at: receivedAt, calendar: calendar,
+                                            calendarMode: detected)
+                }
             }
             if state.detectHalfDaysFromCalendar, case let .confirmed(mode) = observation {
                 lastCalendarCheckAt = receivedAt
                 applyCalendarHalfDay(mode, checkedAt: receivedAt)
             }
         }
-        processingUnlocks = false
+        processingArrivals = false
     }
 
     @discardableResult

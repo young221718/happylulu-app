@@ -11,7 +11,7 @@ public struct WorkSettings: Codable, Equatable, Sendable {
 }
 
 public enum ArrivalSource: String, Codable, Sendable {
-    case unlock, manual
+    case unlock, login, manual
 }
 
 public enum WorkdayMode: String, Codable, CaseIterable, Sendable {
@@ -159,11 +159,26 @@ public enum Attendance {
     public static func recordUnlock(in state: inout AttendanceState, at date: Date, calendar: Calendar,
                                     calendarMode: WorkdayMode? = nil) -> Bool {
         state.lastUnlockAt = date
+        return recordAutomatic(in: &state, at: date, source: .unlock, calendar: calendar,
+                               calendarMode: calendarMode)
+    }
+
+    @discardableResult
+    public static func recordLogin(in state: inout AttendanceState, at date: Date, calendar: Calendar,
+                                   calendarMode: WorkdayMode? = nil) -> Bool {
+        // Observed login-item launch time, never an inferred boot/unlock time.
+        recordAutomatic(in: &state, at: date, source: .login, calendar: calendar,
+                        calendarMode: calendarMode)
+    }
+
+    private static func recordAutomatic(in state: inout AttendanceState, at date: Date,
+                                        source: ArrivalSource, calendar: Calendar,
+                                        calendarMode: WorkdayMode?) -> Bool {
         let day = dayKey(date, calendar: calendar)
         guard let mode = automaticMode(at: date, calendar: calendar, calendarMode: calendarMode),
               state.arrivals[day] == nil,
               !state.suppressedDays.contains(day) else { return false }
-        state.arrivals[day] = Arrival(day: day, time: date, source: .unlock,
+        state.arrivals[day] = Arrival(day: day, time: date, source: source,
                                       timeZoneID: calendar.timeZone.identifier,
                                       mode: mode, modeSource: .automatic)
         return true

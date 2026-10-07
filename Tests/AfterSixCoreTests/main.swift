@@ -115,3 +115,5 @@ for choice in CountdownDisplay.allCases {
 testDefaults.set("unknown-unit", forKey: "HappyLuluCountdownDisplay")
 expectEqual(CountdownDisplay.saved(in: testDefaults), .hoursMinutes)
 print("PASS saved countdown units: existing key, every selection after reload, absent/unknown fallback; isolated test suite")
+
+try checkLoginLaunch()

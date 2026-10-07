@@ -159,7 +159,7 @@ struct PanelView: View {
     private var timeCards: some View {
         HStack(spacing: 10) {
             timeCard(L("출근", "Arrival"), time: model.arrival.map { model.timeLabel($0.time) } ?? "—",
-                     note: model.arrival.map { $0.source == .unlock ? L("잠금 해제 감지", "Unlock detected") : L("직접 입력", "Entered manually") } ?? L("아직 기록 없음", "No record yet"))
+                     note: model.arrival.map { $0.source == .manual ? L("직접 입력", "Entered manually") : ($0.source == .login ? L("로그인 자동 실행 감지", "Login launch detected") : L("잠금 해제 감지", "Unlock detected")) } ?? L("아직 기록 없음", "No record yet"))
             timeCard(L("퇴근 예정", "Expected departure"), time: model.departure.map { model.timeLabel($0) } ?? "—",
                      note: model.departure.map {
                          if model.arrival?.mode != .normal { return L("반차 · 휴게 없이 4시간", "Half-day · 4 hours without break") }
@@ -231,7 +231,7 @@ struct PanelView: View {
 
     private var lastUnlockStatus: some View {
         Text(model.state.lastUnlockAt.map { L("최근 잠금 해제 감지 · \(displayDate($0))", "Last unlock detected · \(displayDate($0))") }
-             ?? L("잠금 해제 감지 대기 중 · 일반 08~10시, 오전 반차 13~15시", "Waiting for unlock · regular 08–10, morning off 13–15"))
+             ?? L("아직 잠금 해제 감지 이력 없음 · 일반 08~10시, 오전 반차 13~15시", "No unlock detected yet · regular 08–10, morning off 13–15"))
             .font(.system(size: 10)).foregroundStyle(.tertiary)
     }
 }

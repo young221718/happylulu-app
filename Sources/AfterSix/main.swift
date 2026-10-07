@@ -4,6 +4,7 @@ import Combine
 import EventKit
 import ServiceManagement
 import AfterSixCore
+import MacLaunchSupport
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -17,7 +18,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var observation: AnyCancellable?
     private var languageObservation: AnyCancellable?
 
+    private var loginObservedAt: Date?
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        observeLoginLaunch()
+    }
+
+    private func observeLoginLaunch() {
+        if loginObservedAt == nil,
+           LoginLaunch.isLoginItem(NSAppleEventManager.shared().currentAppleEvent) {
+            loginObservedAt = Date()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        observeLoginLaunch()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = LuluBrand.menuBarIcon()
@@ -41,8 +56,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         let firstLaunch = !model.state.didOfferLoginItem
-        model.start()
+        model.start(loginObservedAt: loginObservedAt)
         calendarSync.start()
+        updater.canInstallNow = { [weak self] in
+            guard let self else { return false }
+            return !self.model.isProcessingAttendance && !self.calendarSync.isRunning
+                && !NSApplication.shared.isActive
+                && !NSApplication.shared.windows.contains { $0.isVisible && $0.level == .normal }
+        }
         updater.start()
         updateTitle()
         if firstLaunch { togglePanel() }
@@ -52,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func updateTitle() {
         statusItem.button?.title = " " + model.menuTitle
         var toolTip = model.departure.map { L("출근 \(model.timeLabel(model.arrival!.time)) · 퇴근 예정 \(model.timeLabel($0))", "Arrived \(model.timeLabel(model.arrival!.time)) · expected departure \(model.timeLabel($0))") }
-            ?? L("HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 잠금 해제를 기다립니다", "HappyLulu · waiting for unlock: regular 08:00–10:00, morning off 13:00–15:00")
+            ?? L("HappyLulu · 일반 08:00~10:00, 오전 반차 13:00~15:00 로그인·잠금 해제를 기다립니다", "HappyLulu · waiting for login/unlock: regular 08:00–10:00, morning off 13:00–15:00")
         if let extra = model.postDepartureStatus {
             toolTip += " · " + model.mealStatusLabel(extra)
             toolTip += " · " + L("예정 시각 기준, 실제 근무·지급 미확인",
@@ -108,6 +129,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         NSApplication.shared.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if updater.isInstallingUpdate && (model.isProcessingAttendance || calendarSync.isRunning) {
+            updater.installationWasDeferred()
+            return .terminateCancel
+        }
+        return .terminateNow
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
