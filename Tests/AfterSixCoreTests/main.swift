@@ -50,6 +50,7 @@ let checks: [(String, () throws -> Void)] = [
     ("Persistence and restart", tests.testPersistenceAndRestartDoNotOverwriteArrival),
     ("No invented arrival", tests.testMissingFileDoesNotInventAttendanceOrWrite),
     ("Corrupt file preserved", tests.testCorruptFileIsPreserved),
+    ("Invalid arrival preserves file", tests.testInvalidArrivalCannotOverwriteFile),
     ("Invalid settings", tests.testInvalidSettingsCannotOverwriteFile),
     ("Unknown schema", tests.testUnknownSchemaIsRejected),
     ("Calendar and manual precedence", tests.testCalendarAndManualModePrecedence),
