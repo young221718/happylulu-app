@@ -1,6 +1,6 @@
-# HappyLulu for Windows 1.2.0
+# HappyLulu for Windows 1.2.1 candidate
 
-The latest version is 1.2.0. Adds light cards, extra elapsed time and the meal time threshold after scheduled departure; it does not verify work or approve payment.
+The currently published version is 1.2.0. Version 1.2.1 is an unpublished candidate that rounds the hours display up to one decimal place. It retains the light cards, extra elapsed time and meal time threshold after scheduled departure; it does not verify work or approve payment.
 
 HappyLulu runs in the Windows notification area. Left-click its icon for today's arrival, estimated departure, manual entry, and day-off action. Right-click to open the separate Settings window or exit. In Settings, choose System, Korean, or English; the preference is saved locally and the open windows and tray text refresh.
 
@@ -8,7 +8,7 @@ While the app is running, the first actual Windows `SessionUnlock` event in the 
 
 Records stay in `%LOCALAPPDATA%\HappyLulu\state.json`. If the file cannot be read, the app preserves it and disables saving. Settings includes work and break duration, recent arrivals, and an optional Start with Windows switch. The switch changes the current user's Run registry entry only when selected. If you move the portable executable, set startup again.
 
-Calendar sync and in-app automatic updates are not included in Windows 1.2.0.
+Calendar sync and in-app automatic updates are not included in the Windows 1.2.1 candidate.
 
 ## Build and check
 
@@ -20,10 +20,10 @@ dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj -c Release -r win-x6
 dotnet publish windows/HappyLulu.Tray/HappyLulu.Tray.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o dist/windows/runtime-required
 ```
 
-`HappyLulu-1.2.0-windows-x64.zip` includes the runtime. The smaller `HappyLulu-1.2.0-windows-x64-runtime-required.zip` requires the **.NET 10 Desktop Runtime x64** on the target PC. Extract either ZIP and run `HappyLulu.exe`. CI builds both ZIPs and checks that the runtime-required ZIP stays below 25 MiB.
+`HappyLulu-1.2.1-windows-x64.zip` includes the runtime. The smaller `HappyLulu-1.2.1-windows-x64-runtime-required.zip` requires the **.NET 10 Desktop Runtime x64** on the target PC. Extract either ZIP and run `HappyLulu.exe`. CI builds both ZIPs and checks that the runtime-required ZIP stays below 25 MiB.
 
 Core checks and a successful build do not prove real session unlock detection, tray display, startup after sign-in, or execution with an installed runtime. Verify these on Windows separately.
 
 [Windows release notes (Korean)](RELEASE-NOTES.md)
 
-In Settings, **Remaining time display** offers milliseconds, seconds, minutes, hours, and hours/minutes (default). The preference applies to Today and the tray tooltip and persists across restarts. Each unit rounds up; milliseconds refresh every 0.1 seconds while the countdown is active. Attendance calculations and overtime guidance remain unchanged.
+In Settings, **Remaining time display** offers milliseconds, seconds, minutes, hours, and hours/minutes (default). The preference applies to Today and the tray tooltip and persists across restarts. Hours round up in 0.1-hour (six-minute) steps: 90 minutes shows 1.5 h and 30 minutes shows 0.5 h. Whole hours omit the decimal; any positive remainder shows at least 0.1 h, and zero or expired time shows 0 h. Other units keep their existing rounding; milliseconds refresh every 0.1 seconds while the countdown is active. Attendance calculations and overtime guidance remain unchanged.
