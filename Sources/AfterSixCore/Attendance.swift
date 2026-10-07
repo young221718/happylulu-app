@@ -257,15 +257,20 @@ public struct StateStore: Sendable {
         guard FileManager.default.fileExists(atPath: url.path) else { return AttendanceState() }
         let state = try JSONDecoder().decode(AttendanceState.self, from: Data(contentsOf: url))
         guard state.version == 1, state.settings.isValid,
-              state.arrivals.allSatisfy({ key, value in
-                  key == value.day && value.time.timeIntervalSince1970.isFinite
-                  && TimeZone(identifier: value.timeZoneID) != nil
-              }) else { throw AttendanceError.invalidState }
+              hasValidArrivals(state) else { throw AttendanceError.invalidState }
         return state
+    }
+
+    private func hasValidArrivals(_ state: AttendanceState) -> Bool {
+        state.arrivals.allSatisfy { key, value in
+            key == value.day && value.time.timeIntervalSince1970.isFinite
+                && TimeZone(identifier: value.timeZoneID) != nil
+        }
     }
 
     public func save(_ state: AttendanceState) throws {
         guard state.version == 1, state.settings.isValid else { throw AttendanceError.invalidSettings }
+        guard hasValidArrivals(state) else { throw AttendanceError.invalidState }
         let directory = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let encoder = JSONEncoder()
