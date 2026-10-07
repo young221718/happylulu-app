@@ -1,3 +1,4 @@
+using System.Globalization;
 using HappyLulu.Core;
 
 int checks = 0;
@@ -81,14 +82,36 @@ var displayNow = At(2026, 10, 6, 9, 0);
 var displayLeave = displayNow.AddHours(1).AddMinutes(1).AddMilliseconds(1);
 Check(new AttendanceState().RemainingTimeUnit == RemainingTimeUnit.HoursMinutes, "default display remains hours/minutes");
 Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.HoursMinutes, true) == "1시간 2분", "default minutes round up across fractional boundary");
-Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Hours, false) == "2 h", "hours round up");
+Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Hours, false) == "1.1 h", "hours round up to one tenth");
+Check(RemainingTimeDisplay.Format(displayNow.AddMinutes(90), displayNow, RemainingTimeUnit.Hours, true) == "1.5시간", "ninety minutes displays one and a half hours");
+Check(RemainingTimeDisplay.Format(displayNow.AddMinutes(30), displayNow, RemainingTimeUnit.Hours, true) == "0.5시간", "thirty minutes displays half an hour");
+Check(RemainingTimeDisplay.Format(displayNow.AddHours(1), displayNow, RemainingTimeUnit.Hours, false) == "1 h", "whole hour omits trailing decimal");
+Check(RemainingTimeDisplay.Format(displayNow.AddHours(1).AddTicks(-1), displayNow, RemainingTimeUnit.Hours, false) == "1 h", "just below a whole hour remains one hour");
+Check(RemainingTimeDisplay.Format(displayNow.AddHours(1).AddTicks(1), displayNow, RemainingTimeUnit.Hours, false) == "1.1 h", "just above a whole hour rounds up");
+Check(RemainingTimeDisplay.Format(displayNow.AddMinutes(6), displayNow, RemainingTimeUnit.Hours, false) == "0.1 h", "exact tenth-hour boundary");
+Check(RemainingTimeDisplay.Format(displayNow.AddMinutes(6).AddTicks(1), displayNow, RemainingTimeUnit.Hours, false) == "0.2 h", "just above a tenth-hour boundary rounds up");
+Check(RemainingTimeDisplay.Format(displayNow, displayNow, RemainingTimeUnit.Hours, false) == "0 h" &&
+      RemainingTimeDisplay.Format(displayNow.AddTicks(-1), displayNow, RemainingTimeUnit.Hours, true) == "0시간",
+      "zero and expired hours display zero");
+var originalCulture = CultureInfo.CurrentCulture;
+try
+{
+    CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+    Check(RemainingTimeDisplay.Format(displayNow.AddMinutes(90), displayNow, RemainingTimeUnit.Hours, false) == "1.5 h" &&
+          RemainingTimeDisplay.Format(displayNow.AddMinutes(30), displayNow, RemainingTimeUnit.Hours, true) == "0.5시간",
+          "hour decimal separator stays invariant in English and Korean under French culture");
+}
+finally
+{
+    CultureInfo.CurrentCulture = originalCulture;
+}
 Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Minutes, false) == "62 min", "minutes round up");
 Check(RemainingTimeDisplay.Format(displayLeave, displayNow, RemainingTimeUnit.Seconds, true) == "3661초", "seconds round up");
 Check(RemainingTimeDisplay.Format(displayNow.AddMilliseconds(100), displayNow, RemainingTimeUnit.Milliseconds, false) == "100 ms", "milliseconds use actual remaining duration");
 foreach (var unit in Enum.GetValues<RemainingTimeUnit>())
 {
     Check(RemainingTimeDisplay.Format(displayNow, displayNow.AddHours(1), unit, false).StartsWith("0"), "elapsed countdown clamps to zero: " + unit);
-    Check(RemainingTimeDisplay.Format(displayNow.AddTicks(1), displayNow, unit, false).StartsWith(unit == RemainingTimeUnit.HoursMinutes ? "0h 1m" : "1"), "positive fraction never appears expired: " + unit);
+    Check(RemainingTimeDisplay.Format(displayNow.AddTicks(1), displayNow, unit, false).StartsWith(unit switch { RemainingTimeUnit.HoursMinutes => "0h 1m", RemainingTimeUnit.Hours => "0.1", _ => "1" }), "positive fraction never appears expired: " + unit);
 }
 Check(RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, true) == 100 &&
       RemainingTimeDisplay.RefreshInterval(RemainingTimeUnit.Milliseconds, false) == 1000 &&
@@ -100,13 +123,13 @@ try
 {
     var store = new StateStore(System.IO.Path.Combine(root, "state.json"));
     state.Language = UiLanguage.Korean;
-    state.RemainingTimeUnit = RemainingTimeUnit.Seconds;
+    state.RemainingTimeUnit = RemainingTimeUnit.Hours;
     store.Save(state);
     var loaded = store.Load();
     Check(loaded.Arrivals.Count == state.Arrivals.Count && loaded.SuppressedDays.SetEquals(state.SuppressedDays),
           "local state round trip");
     Check(loaded.Language == UiLanguage.Korean, "language preference round trip");
-    Check(loaded.RemainingTimeUnit == RemainingTimeUnit.Seconds && loaded.Copy().RemainingTimeUnit == RemainingTimeUnit.Seconds,
+    Check(loaded.RemainingTimeUnit == RemainingTimeUnit.Hours && loaded.Copy().RemainingTimeUnit == RemainingTimeUnit.Hours,
           "remaining unit persists and survives copy");
     string original = File.ReadAllText(store.Path);
     var legacy = System.Text.Json.Nodes.JsonNode.Parse(original)!;

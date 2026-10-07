@@ -70,13 +70,14 @@ let countdownSamples: [(CountdownDisplay, String, String)] = [
     (.milliseconds, "3661250밀리초", "3661250 ms"),
     (.seconds, "3662초", "3662 sec"),
     (.minutes, "62분", "62 min"),
-    (.hours, "2시간", "2 hr"),
+    (.hours, "1.1시간", "1.1 hr"),
     (.hoursMinutes, "1시간 2분", "1 hr 2 min")
 ]
 for (choice, korean, english) in countdownSamples {
     expectEqual(choice.text(seconds: 3661.25, korean: true), korean)
     expectEqual(choice.text(seconds: 3661.25, korean: false), english)
-    expectTrue(choice.text(seconds: 0.25, korean: false).hasPrefix(choice == .milliseconds ? "250" : "1"))
+    let positivePrefix = choice == .milliseconds ? "250" : choice == .hours ? "0.1" : "1"
+    expectTrue(choice.text(seconds: 0.25, korean: false).hasPrefix(positivePrefix))
     expectTrue(choice.text(seconds: -1, korean: false).hasPrefix("0"))
     expectTrue(choice.text(seconds: 0, korean: false).hasPrefix("0"))
 }
@@ -84,3 +85,33 @@ expectEqual(CountdownDisplay.hoursMinutes.text(seconds: 3600, korean: false), "1
 expectEqual(CountdownDisplay.hours.text(seconds: 3600, korean: false), "1 hr")
 expectEqual(CountdownDisplay.minutes.text(seconds: 60, korean: false), "1 min")
 print("PASS countdown formats: five units, two languages, fractional/boundary/expired durations")
+
+
+let decimalHourSamples: [(TimeInterval, String)] = [
+    (5400, "1.5"), (1800, "0.5"), (0, "0"), (-1, "0"),
+    (0.001, "0.1"), (359.999, "0.1"), (360, "0.1"), (360.001, "0.2"),
+    (3599.999, "1"), (3600, "1"), (3600.001, "1.1"),
+    (5399.999, "1.5"), (5400.001, "1.6"), (72_000, "20"), (72_001, "20"),
+    (.infinity, "0"), (-.infinity, "0"), (.nan, "0")
+]
+for (seconds, number) in decimalHourSamples {
+    expectEqual(CountdownDisplay.hours.text(seconds: seconds, korean: true), number + "시간")
+    expectEqual(CountdownDisplay.hours.text(seconds: seconds, korean: false), number + " hr")
+}
+expectEqual(CountdownDisplay.hours.refreshInterval, 1)
+expectEqual(CountdownDisplay.milliseconds.refreshInterval, 0.1)
+print("PASS decimal hours: requested examples, tenth/integer boundaries, positive/expired/nonfinite durations, Korean/English")
+
+let preferenceSuite = "HappyLuluChecks.countdown." + UUID().uuidString
+let testDefaults = UserDefaults(suiteName: preferenceSuite)!
+defer { testDefaults.removePersistentDomain(forName: preferenceSuite) }
+expectEqual(CountdownDisplay.saved(in: testDefaults), .hoursMinutes)
+for choice in CountdownDisplay.allCases {
+    choice.save(in: testDefaults)
+    let restartedDefaults = UserDefaults(suiteName: preferenceSuite)!
+    expectEqual(CountdownDisplay.saved(in: restartedDefaults), choice)
+    expectEqual(restartedDefaults.string(forKey: "HappyLuluCountdownDisplay"), choice.rawValue)
+}
+testDefaults.set("unknown-unit", forKey: "HappyLuluCountdownDisplay")
+expectEqual(CountdownDisplay.saved(in: testDefaults), .hoursMinutes)
+print("PASS saved countdown units: existing key, every selection after reload, absent/unknown fallback; isolated test suite")

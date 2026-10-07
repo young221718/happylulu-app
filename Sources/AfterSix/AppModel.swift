@@ -11,7 +11,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var loginStatus = SMAppService.mainApp.status
     @Published private(set) var calendarHalfDayMode: WorkdayMode?
     @Published private(set) var calendarHalfDayMessage: String?
-    @Published private(set) var countdownDisplay = CountdownDisplay(rawValue: UserDefaults.standard.string(forKey: "HappyLuluCountdownDisplay") ?? "") ?? .hoursMinutes
+    @Published private(set) var countdownDisplay = CountdownDisplay.saved()
     let store: StateStore
     private var writable = true
     private var timer: Timer?
@@ -32,7 +32,7 @@ final class AppModel: ObservableObject {
         countdownDisplay.text(seconds: departure?.timeIntervalSince(now) ?? 0, korean: L("ko", "en") == "ko")
     }
     func setCountdownDisplay(_ choice: CountdownDisplay) {
-        UserDefaults.standard.set(choice.rawValue, forKey: "HappyLuluCountdownDisplay")
+        choice.save()
         countdownDisplay = choice
         now = Date()
         if timer != nil { startCountdownTimer() }
