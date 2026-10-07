@@ -52,7 +52,7 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                Text(L("선택한 단위로 올림 표시합니다. 밀리초는 0.1초마다 갱신합니다.", "Values round up to the selected unit. Milliseconds refresh every 0.1 seconds."))
+                Text(L("시간은 0.1시간씩, 다른 단위는 선택한 단위로 올림합니다. 밀리초는 0.1초마다 갱신합니다.", "Hours round up in 0.1-hour steps; other units round up to the selected unit. Milliseconds refresh every 0.1 seconds."))
                     .font(.caption).foregroundStyle(.secondary)
                 Toggle(L("로그인 시 자동 실행", "Launch at login"), isOn: Binding(
                     get: { model.loginEnabled }, set: { model.setLoginEnabled($0) }))
