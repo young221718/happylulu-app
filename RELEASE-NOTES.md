@@ -1,4 +1,4 @@
-# HappyLulu for Mac 1.5.10 · build 23
+# HappyLulu for Mac 1.5.10 · build 24
 
 2026-10-08 · 설정 사이드바 통합과 캘린더 동기화 재개
 

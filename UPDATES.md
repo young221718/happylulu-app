@@ -23,8 +23,8 @@
 
 ```sh
 bash scripts/package-release.sh
-bash scripts/generate-update-feed.sh dist/releases/1.5.10-build23/HappyLulu-1.5.10-universal.zip
-swift run --build-system native AppUpdateChecks dist/releases/1.5.10-build23/HappyLulu.app dist/updates/appcast.xml
+bash scripts/generate-update-feed.sh dist/releases/1.5.10-build24/HappyLulu-1.5.10-universal.zip
+swift run --build-system native AppUpdateChecks dist/releases/1.5.10-build24/HappyLulu.app dist/updates/appcast.xml
 ```
 
 검증된 `dist/updates/`의 ZIP·appcast.xml·릴리즈 노트를 기존 사이트 `/updates/`에 게시합니다. 서명 후 파일을 수정하면 재서명해야 합니다. `/downloads/`에도 수동 설치 파일을 제공하며 이전 배포 파일은 보존합니다. 실제 게시·공개 범위 변경은 사용자 승인 범위 내에서 진행합니다.
