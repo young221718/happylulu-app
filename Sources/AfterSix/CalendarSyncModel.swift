@@ -5,6 +5,13 @@ import Network
 import CalendarSyncCore
 import CalendarSyncServices
 
+protocol CalendarSyncAccess: Sendable {
+    func requestAccess() async throws
+    func writableCalendars() async throws -> [SystemCalendarSummary]
+}
+
+extension SystemCalendarAccess: CalendarSyncAccess {}
+
 private enum CalendarSyncModelError: Error, LocalizedError {
     case calendarPairLocked
     case sameCalendar
@@ -31,26 +38,68 @@ final class CalendarSyncModel: ObservableObject {
     @Published private(set) var conflicts: [SyncConflict] = []
     @Published private(set) var lastSuccessAt: Date?
     @Published private(set) var nextRunAt: Date?
+    @Published private(set) var lastFailureAt: Date?
+    @Published private(set) var lastFailureCode: String?
+    @Published private(set) var pauseReason: String?
     @Published private(set) var enabled = false
-    @Published private(set) var isRunning = false
+    @Published private(set) var isRunning = false {
+        didSet {
+            guard !isRunning, calendarRefreshPending else { return }
+            calendarRefreshPending = false
+            Task { await requestCalendarAccess(requestPermission: false) }
+        }
+    }
     @Published private(set) var calendarAccessReady = false
     @Published private(set) var pairLocked = false
     @Published var accountsConfirmed = false
     @Published var message: String?
 
-    private let calendarAccess = SystemCalendarAccess()
+    private let calendarAccess: any CalendarSyncAccess
     private let store: SyncStore?
     private var timer: Timer?
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "HappyLulu.CalendarNetwork")
     private var loaded = false
+    private var calendarRefreshPending = false
+    private var appliedState: CalendarSyncState?
+    @Published private var reviewedPairKey: String?
+
+    var hasConfiguredPair: Bool {
+        !selectedDaouCalendar.isEmpty && !selectedGoogleCalendar.isEmpty &&
+            selectedDaouCalendar != selectedGoogleCalendar
+    }
+
+    var canBeginSync: Bool {
+        guard !isRunning, !enabled, calendarAccessReady, accountsConfirmed,
+              hasConfiguredPair, let state = appliedState,
+              state.configuration.daouCalendarURL == selectedDaouCalendar,
+              state.configuration.googleCalendarID == selectedGoogleCalendar else { return false }
+        return state.canBeginSystemSync(reviewedPairKey: reviewedPairKey)
+    }
 
     init() {
+        calendarAccess = SystemCalendarAccess()
         do { store = try SyncStore() }
         catch {
             store = nil
             message = error.localizedDescription
         }
+        observeApplicationActivation()
+    }
+
+    init(calendarAccess: any CalendarSyncAccess, store: SyncStore? = nil) {
+        self.calendarAccess = calendarAccess
+        self.store = store
+        observeApplicationActivation()
+    }
+
+    private func observeApplicationActivation() {
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationActivated(_:)),
+            name: NSApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func applicationActivated(_ notification: Notification) {
+        Task { await requestCalendarAccess(requestPermission: false) }
     }
 
     func start() {
@@ -82,6 +131,7 @@ final class CalendarSyncModel: ObservableObject {
     private func invalidatePreview(_ changed: Bool) {
         guard changed else { return }
         preview = nil
+        reviewedPairKey = nil
         conflicts = []
         accountsConfirmed = false
     }
@@ -104,9 +154,7 @@ final class CalendarSyncModel: ObservableObject {
         }
         let usesSystemAccounts = state.configuration.daouBaseURL == "eventkit"
         enabled = usesSystemAccounts && state.configuration.systemAccountsConfirmed == true && state.configuration.enabled
-        preview = usesSystemAccounts &&
-            (state.initialPreviewFingerprint != nil || state.initialWriteAuthorized == true)
-            ? state.lastPreview : nil
+        preview = state.hasReviewableSystemPreview ? state.lastPreview : nil
         accountsConfirmed = usesSystemAccounts && state.configuration.systemAccountsConfirmed == true
         pairLocked = state.configuration.previewAccepted || state.lastSuccessAt != nil || !state.pendingOperations.isEmpty
         var seen = Set<String>()
@@ -115,8 +163,20 @@ final class CalendarSyncModel: ObservableObject {
             return seen.insert(key).inserted
         }
         lastSuccessAt = state.lastSuccessAt
-        nextRunAt = state.nextRunAt
-        if let error = state.lastErrorCode { message = "지난 동기화 오류: \(error)" }
+        nextRunAt = enabled ? state.nextRunAt : nil
+        lastFailureAt = state.lastFailureAt
+        lastFailureCode = state.lastFailureCode
+        pauseReason = state.pauseReason
+        appliedState = state
+        if let error = state.lastErrorCode {
+            message = "지난 동기화 오류: \(error)"
+        } else if enabled {
+            message = "자동 동기화가 켜져 있어요."
+        } else if state.lastSuccessAt != nil {
+            message = "자동 동기화가 일시 중지되어 있어요. 새 미리보기를 확인한 뒤 다시 시작해 주세요."
+        } else {
+            message = "동기화할 캘린더를 선택하고 미리보기를 먼저 확인해 주세요."
+        }
     }
 
     private func conflictPairKey(_ conflict: SyncConflict) -> String {
@@ -169,7 +229,10 @@ final class CalendarSyncModel: ObservableObject {
     }
 
     func requestCalendarAccess(requestPermission: Bool = true) async {
-        guard !isRunning else { return }
+        guard !isRunning else {
+            if !requestPermission { calendarRefreshPending = true }
+            return
+        }
         isRunning = true
         defer { isRunning = false }
         do {
@@ -217,6 +280,7 @@ final class CalendarSyncModel: ObservableObject {
 
     private func run(allowWrites: Bool) async {
         guard !isRunning else { return }
+        if !allowWrites { reviewedPairKey = nil }
         isRunning = true
         defer { isRunning = false }
         await performRun(allowWrites: allowWrites)
@@ -228,8 +292,11 @@ final class CalendarSyncModel: ObservableObject {
             preview = summary
             let latest = try await store?.load()
             if let latest { apply(latest) }
+            if !allowWrites { reviewedPairKey = latest?.pairKey }
             if allowWrites && latest?.lastErrorCode == "initialPendingUncertain" {
                 message = "첫 일정 저장 결과가 확인되지 않아 다른 일정 반영을 보류했어요."
+            } else if allowWrites && (summary.held > 0 || summary.conflicts > 0 || summary.excluded > 0) {
+                message = "동기화 확인 필요 · \(summary.completed)건 반영 · \(summary.held)건 보류 · \(summary.conflicts)건 충돌 · \(summary.excluded)건 제외"
             } else {
                 message = allowWrites
                     ? "동기화 완료 · \(summary.completed)건 반영"
@@ -249,15 +316,10 @@ final class CalendarSyncModel: ObservableObject {
             guard let store else { return }
             do {
                 var state = try persistedConfiguration(try await store.load())
-                guard state.lastPreview != nil, state.initialPreviewFingerprint != nil,
-                      state.configuration.hasSelectedPair else {
-                    throw SyncCoordinatorError.previewRequired
-                }
-                state.configuration.previewAccepted = true
-                state.configuration.enabled = true
-                state.nextRunAt = Date()
+                try state.beginSystemSync(reviewedPairKey: reviewedPairKey)
                 try await store.save(state)
-                enabled = true
+                reviewedPairKey = nil
+                apply(state)
                 await performRun(allowWrites: true)
             } catch { message = error.localizedDescription }
         }
@@ -284,6 +346,10 @@ final class CalendarSyncModel: ObservableObject {
     }
 
     func setPaused(_ paused: Bool) {
+        if !paused {
+            beginSync()
+            return
+        }
         Task {
             guard !isRunning else { return }
             isRunning = true
@@ -291,11 +357,13 @@ final class CalendarSyncModel: ObservableObject {
             guard let store else { return }
             do {
                 var state = try await store.load()
-                state.configuration.enabled = !paused
+                state.configuration.enabled = false
+                state.nextRunAt = nil
+                state.pauseReason = "userPaused"
                 try await store.save(state)
-                enabled = !paused
-                message = paused ? "자동 동기화를 일시 중지했어요." : "자동 동기화를 다시 시작했어요."
-                if !paused { await performRun(allowWrites: true) }
+                reviewedPairKey = nil
+                apply(state)
+                message = "자동 동기화를 일시 중지했어요. 새 미리보기를 확인한 뒤 다시 시작할 수 있어요."
             } catch { message = error.localizedDescription }
         }
     }
@@ -303,5 +371,28 @@ final class CalendarSyncModel: ObservableObject {
     private func runIfDue() {
         guard enabled, !isRunning, let nextRunAt, nextRunAt <= Date() else { return }
         syncNow()
+    }
+
+    func canResolveConflict(_ conflict: SyncConflict, prefer side: CalendarSide) -> Bool {
+        guard enabled, !isRunning, lastSuccessAt != nil, let state = appliedState,
+              let mapping = state.mappings[conflict.mappingID] else {
+            return false
+        }
+        func eventID(_ observation: CalendarObservation) -> String? {
+            if case .present(let event) = observation { return event.id }
+            return nil
+        }
+        let daouID = eventID(conflict.daou) ?? mapping.daouEventID
+        let googleID = eventID(conflict.google) ?? mapping.googleEventID
+        let related = state.mappings.values.filter { item in
+            item.id == mapping.id || (daouID != nil && item.daouEventID == daouID)
+                || (googleID != nil && item.googleEventID == googleID)
+        }
+        guard !related.contains(where: {
+            $0.protectedSources?.contains(side.opposite) == true || state.pendingOperations[$0.id] != nil
+        }) else { return false }
+        let target = side.opposite == .daou ? conflict.daou : conflict.google
+        if case .present(let event) = target { return event.protectedSource != true }
+        return true
     }
 }

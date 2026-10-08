@@ -15,6 +15,5 @@ done
 bash scripts/embed-sparkle.sh "$app_dir"
 swift scripts/make-icon.swift "$project_dir/Resources/HappyLuluIcon.png" "$project_dir/.build/HappyLulu.iconset"
 iconutil -c icns "$project_dir/.build/HappyLulu.iconset" -o "$app_dir/Contents/Resources/AppIcon.icns"
-codesign --force --sign - --identifier local.chanyoung.AfterSix "$app_dir"
-codesign --verify --deep --strict "$app_dir"
+bash scripts/sign-app.sh "$app_dir"
 printf 'Built: %s\n' "$app_dir"

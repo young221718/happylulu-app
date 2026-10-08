@@ -12,12 +12,17 @@ public struct CalendarMapping: Codable, Equatable, Sendable {
     public var daouEventID: String?
     public var googleEventID: String?
     public var baseline: SyncBaseline?
+    /// Once an invitation origin is identified, retain its write protection
+    /// even when a later observation lacks participant metadata.
+    public var protectedSources: [CalendarSide]?
 
-    public init(id: String, daouEventID: String?, googleEventID: String?, baseline: SyncBaseline?) {
+    public init(id: String, daouEventID: String?, googleEventID: String?, baseline: SyncBaseline?,
+                protectedSources: [CalendarSide]? = nil) {
         self.id = id
         self.daouEventID = daouEventID
         self.googleEventID = googleEventID
         self.baseline = baseline
+        self.protectedSources = protectedSources
     }
 
     public func eventID(on side: CalendarSide) -> String? {

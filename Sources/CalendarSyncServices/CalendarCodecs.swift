@@ -141,6 +141,9 @@ enum ICalendarCodec {
     }
 
     private static func supportedLines(_ content: CalendarEventContent) throws -> [String] {
+        // The legacy REST adapters do not yet encode alarm trigger semantics.
+        // Reject rather than silently dropping alarms supported by EventKit.
+        guard content.alarms?.isEmpty != false else { throw CalendarCodecError.unsupportedEvent }
         guard !content.title.contains("/") else { throw CalendarCodecError.unsupportedEvent }
         var lines = ["SUMMARY:\(escape(content.title))"]
         switch content.time {
@@ -251,6 +254,7 @@ enum GoogleEventCodec {
     }
 
     static func writeJSON(_ content: CalendarEventContent, mappingID: String?, id: String? = nil) throws -> Data {
+        guard content.alarms?.isEmpty != false else { throw CalendarCodecError.unsupportedEvent }
         var object: [String: Any] = ["summary": content.title]
         switch content.time {
         case let .allDay(start, end):

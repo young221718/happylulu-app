@@ -128,13 +128,33 @@ public actor SystemCalendarProvider: CalendarProvider {
         guard marked.values.allSatisfy({ Set($0.map(\.physicalID)).count == 1 }) else {
             throw SystemCalendarError.uncertainWrite
         }
-        return CalendarChangePage(changes: events.map { .upsert($0.event) }, isFullSnapshot: true)
+        let identities = Dictionary(grouping: events, by: { $0.event.id })
+        var observed: [CalendarEvent] = []
+        for id in identities.keys.sorted() {
+            guard let records = identities[id], let first = records.sorted(by: { $0.physicalID < $1.physicalID }).first else { continue }
+            var event = first.event
+            if Set(records.map(\.physicalID)).count > 1 {
+                guard id.hasPrefix("occurrence:") else { throw SystemCalendarError.uncertainWrite }
+                // An ambiguous recurrence is visible for review but cannot be
+                // planned or copied. Independent occurrences may still sync.
+                event.exclusion = .other("ambiguousOccurrence")
+            }
+            observed.append(event)
+        }
+        return CalendarChangePage(changes: observed.map(CalendarChange.upsert), isFullSnapshot: true)
     }
 
     public func observe(eventID: String) async throws -> CalendarObservation {
         try backend.validateCalendar()
-        guard let event = try backend.event(id: eventID) else { return .unavailable(.unknown) }
-        return .present(event)
+        do {
+            guard let event = try backend.event(id: eventID) else { return .unavailable(.unknown) }
+            return .present(event)
+        } catch SystemCalendarError.uncertainWrite {
+            // A legacy UID may now refer to a series or multiple occurrences.
+            // Its uncertainty holds this mapping without aborting unrelated
+            // work. Write and recovery paths retain their strict rejection.
+            return .unavailable(.unknown)
+        }
     }
 
     public func apply(_ operation: SyncOperation) async throws -> CalendarWriteReceipt {
@@ -148,10 +168,12 @@ public actor SystemCalendarProvider: CalendarProvider {
             return CalendarWriteReceipt(eventID: event.id, version: event.version)
         case let .update(_, target, id, expectedVersion, content):
             guard target == side else { throw CalendarProviderError.wrongSide }
+            guard try backend.event(id: id)?.protectedSource != true else { throw CalendarCodecError.unsupportedEvent }
             let event = try backend.update(id: id, expectedVersion: expectedVersion, content: content)
             return CalendarWriteReceipt(eventID: event.id, version: event.version)
         case let .delete(_, target, id, expectedVersion):
             guard target == side else { throw CalendarProviderError.wrongSide }
+            guard try backend.event(id: id)?.protectedSource != true else { throw CalendarCodecError.unsupportedEvent }
             try backend.delete(id: id, expectedVersion: expectedVersion)
             return CalendarWriteReceipt(eventID: id, version: nil)
         }
@@ -224,7 +246,8 @@ private final class EventKitCalendarBackend: SystemCalendarBackend, @unchecked S
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: [calendar])
         return try store.events(matching: predicate).map { event in
             guard let id = event.eventIdentifier else { throw SystemCalendarError.eventMissing }
-            return SystemCalendarRecord(physicalID: id, event: try decode(event))
+            let decoded = try decode(event)
+            return SystemCalendarRecord(physicalID: id + "|" + decoded.id, event: decoded)
         }
     }
 
@@ -234,11 +257,24 @@ private final class EventKitCalendarBackend: SystemCalendarBackend, @unchecked S
 
     private func find(id: String) throws -> EKEvent? {
         _ = try selectedCalendar()
+        if id.hasPrefix("occurrence:") {
+            // Search actual occurrences, not EventKit's first-occurrence UID
+            // shortcut. Moved exceptions keep their original occurrenceDate.
+            let now = Date()
+            let predicate = store.predicateForEvents(withStart: now.addingTimeInterval(-30 * 86_400),
+                end: now.addingTimeInterval(365 * 86_400), calendars: [try selectedCalendar()])
+            return try SystemCalendarSafety.matchingOccurrence(id: id, events: store.events(matching: predicate))
+        }
         if id.hasPrefix("external:") {
             let matches = store.calendarItems(withExternalIdentifier: String(id.dropFirst(9)))
                 .compactMap { $0 as? EKEvent }
                 .filter { $0.calendar.calendarIdentifier == calendarID }
             guard matches.count <= 1 else { throw SystemCalendarError.uncertainWrite }
+            guard !matches.contains(where: { $0.hasRecurrenceRules || $0.isDetached }) else {
+                // A legacy UID-only journal cannot identify a specific member
+                // of a series, so it must not edit the first occurrence.
+                throw SystemCalendarError.uncertainWrite
+            }
             return matches.first
         }
         if id.hasPrefix("sync:") {
@@ -282,42 +318,13 @@ private final class EventKitCalendarBackend: SystemCalendarBackend, @unchecked S
         guard let event = try find(id: id) else { throw SystemCalendarError.eventMissing }
         let decoded = try decode(event)
         guard decoded.version == expectedVersion else { throw SystemCalendarError.eventChanged }
-        guard decoded.exclusion == nil else { throw CalendarCodecError.unsupportedEvent }
+        guard decoded.exclusion == nil, decoded.protectedSource != true else { throw CalendarCodecError.unsupportedEvent }
         return event
     }
 
     private func decode(_ event: EKEvent) throws -> CalendarEvent {
         guard let eventID = event.eventIdentifier else { throw SystemCalendarError.eventMissing }
-        let marker = SystemCalendarSafety.marker(from: event.url)
-        let externalID = event.calendarItemExternalIdentifier
-        // Prefer the server UID. EventKit's local ID can change after a full sync.
-        let id = SystemCalendarSafety.eventID(marker: marker, externalID: externalID, localID: eventID)
-        var exclusion: CalendarEventExclusion?
-        if event.hasRecurrenceRules || event.isDetached { exclusion = .recurring }
-        if event.hasAttendees { exclusion = .invitation }
-        if event.hasAlarms || (event.url != nil && marker == nil) ||
-            (marker == nil && externalID == nil) { exclusion = .unsupportedProperties }
-        let title = event.title ?? ""
-        if title.contains("/") { exclusion = .unsupportedProperties }
-        let time: CalendarEventTime
-        if event.isAllDay {
-            do {
-                // EventKit returns floating all-day dates in the default zone.
-                time = try SystemCalendarSafety.allDayTime(start: event.startDate, end: event.endDate)
-            } catch SystemCalendarError.invalidDate {
-                time = .allDay(startDate: dayString(event.startDate, timeZone: .current),
-                               exclusiveEndDate: dayString(event.endDate, timeZone: .current))
-                exclusion = .unsupportedProperties
-            }
-        } else {
-            time = .timed(start: event.startDate, end: event.endDate,
-                         timeZoneID: event.timeZone?.identifier ?? TimeZone.current.identifier)
-        }
-        let content = SystemCalendarSafety.normalized(CalendarEventContent(title: title, time: time,
-            notes: event.notes, location: event.location))
-        return CalendarEvent(id: id,
-            version: try SystemCalendarSafety.version(content: content, modified: event.lastModifiedDate),
-            content: content, exclusion: exclusion, syncMarker: marker)
+        return try SystemCalendarSafety.decodeEvent(event, localID: eventID)
     }
 
     private func apply(_ content: CalendarEventContent, to event: EKEvent) throws {
@@ -336,14 +343,8 @@ private final class EventKitCalendarBackend: SystemCalendarBackend, @unchecked S
         }
         event.startDate = start
         event.endDate = end
+        event.alarms = try SystemCalendarSafety.eventKitAlarms(content.alarms)
     }
 
-    private func dayString(_ date: Date, timeZone: TimeZone?) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = timeZone ?? .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
-    }
+
 }

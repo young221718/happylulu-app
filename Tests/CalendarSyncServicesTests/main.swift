@@ -619,6 +619,22 @@ func testGoogleSlashTitleIsExcluded() throws {
 }
 
 let checks: [(String, () async throws -> Void)] = [
+    ("preview preserves failure history", testSuccessfulPreviewKeepsFailureHistory),
+    ("coordinator persists protected origin", testCoordinatorPersistsInvitationProtection),
+    ("conflict protects invitation origin", testConflictCannotWriteProtectedInvitation),
+    ("recovery protects invitation origin", testPendingRecoveryCannotWriteProtectedInvitation),
+    ("expanded system alarms", { try testSystemExpandedAlarmSupport() }),
+    ("expanded invitation protection", testSystemExpandedInvitationProtection),
+    ("expanded recurrence occurrences", { try testSystemExpandedRecurrenceSupport() }),
+    ("expanded recurrence copies", testSystemExpandedRecurrenceCopies),
+    ("converted legacy series isolation", testSystemConvertedLegacySeriesIsolation),
+    ("ambiguous pair sticky protection", { try await testAmbiguousPairPreservesProtectionAndJournal(pending: false) }),
+    ("ambiguous pair pending journal", { try await testAmbiguousPairPreservesProtectionAndJournal(pending: true) }),
+    ("summary preview versus applied run", testRunSummaryDistinguishesPreviewFromAppliedRun),
+    ("summary excluded event reasons", testRunSummaryExplainsExcludedEvents),
+    ("successful legacy system sync resume", testSuccessfulLegacySystemSyncCanResumeAfterFreshPreview),
+    ("resume requires fresh same-pair review", { try testResumeRequiresFreshSamePairReview() }),
+    ("initial start still requires fingerprint", { try testInitialSystemStartStillRequiresFingerprint() }),
     ("system all-day inclusive and exclusive ends", { try testSystemAllDayEndRepresentations() }),
     ("system all-day DST and write roundtrip", { try testSystemAllDayDSTAndWriteRoundTrip() }),
     ("system legacy empty all-day journal", testSystemLegacyEmptyAllDayJournalRecovery),

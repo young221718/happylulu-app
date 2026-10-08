@@ -1,5 +1,17 @@
 # AfterSix 검증 기록
 
+## 2026-10-08 HappyLulu 1.5.10 build 21 · 로컬 설치
+
+- 캘린더 서비스52개, 코어28개, 출퇴근31개와 표시·로그인 추가 검사 통과. 반복 회차 복사·이동 예외·재실행 중복 방지·일반 알림 보존·초대 원본 보호·중복 연결의 미확정 저널 보존을 검사했다.
+- 권한 변경 후 앱 복귀, 비공개 진단 집계, 미리보기 영수증과 변경 감지, 실행 중 앱 차단과 임시 캘린더 정리 정보 보존 검사 통과. 독립 검토의 발견 사항을 보완한 뒤 최종 조치할 발견 없음.
+- Release 빌드, 번들 서명 무결성, plist, diff 검사 통과. AppUpdateChecks는 configuration-only로 실행해 Sparkle 초기화와 격리 설정을 확인했다. 공개 피드 서명·배포는 이번에 검사하거나 수행하지 않았다.
+- 설치된 앱은1.5.10 build21이며 실행 파일이 검증한 후보와 일치한다. 출퇴근 파일과 캘린더 동기화 논리 문서의 해시가 교체 전후 동일하다. 기존 build19는 로컬 백업했다.
+- 설치 직후 앱 실행 환경의 권한은 notDetermined였고, 사용자 전체 접근 승인 후 fullAccess와 선택 캘린더 두 개의 읽기·쓰기 가능을 확인했다. 실행 중 앱의 두 번째 CLI 미리보기는 appAlreadyRunning으로 거부했다.
+- 별도 시험 캘린더 생성은 계정에서 거부됐다(fixtureCreationFailed). 정리 완료·남은 시험 데이터 없음으로 반환됐으며 시험 캘린더 왕복 통과로 표시하지 않는다.
+- 실제 선택 캘린더의 새 미리보기는 다우111건·Google56건, 제외·보류·충돌0건이었다. 영수증을 다시 대조해167건의 EventKit 저장을 완료했다. 재조회한 양쪽 일정은 각각169건이고 알림4건·종일3건을 양쪽에서 확인했다. 연결169건 일치, 미완료 journal0건, enabled=true와 다음 실행 예약을 확인했다.
+- 실제 선택 캘린더의 두 번째 미리보기는 양방향 추가 작업0건·제외0건·보류0건·충돌0건이었다. 재실행으로 중복 복사가 계획되지 않는 것을 확인했다. 이 검사는 실제 macOS 캘린더 저장·재조회 근거이며 웹 서버 화면 반영과 이후 예약 시각의 자동 실행은 별도 미검증이다. 전체 과정의 출퇴근 파일 해시는 동일했다.
+- Developer ID 서명 전환은 사용자 요청에 따라 제외했다. macOS EventKit 저장 성공과 다우오피스·Google 웹 서버 반영은 별도 증거가 필요하다. Figma 이전은 기존 계정 한도 차단 상태를 유지한다.
+
 2026-09-28, 로컬 Mac에서 확인했습니다.
 
 ## 완료
@@ -157,3 +169,22 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - AppUpdateChecks의 실제 Sparkle 시작과 자동 다운로드 opt-in/opt-out 검사 통과. Universal arm64/x86_64 앱 빌드·ad-hoc 서명 검증 완료. 미게시 초기 후보는 rejected-candidates에 보존하고 최종 코드를 다시 빌드했습니다.
 - 기존 키체인 sign_update로 시험 파일 서명은 성공. 최종 ZIP 서명은 키체인 단계 대기 중이며 서명 완료·공개 feed 게시·실제 자동 설치는 아직 미검증입니다.
 - Developer ID 공증과 Intel 실기기 시험은 별도 미완료입니다.
+
+
+## 2026-10-08 · 로컬 고정 서명 및 자동 업데이트 후보 1.5.10 build23
+
+- 로그인 키체인에 HappyLulu 전용 고정 자체 서명 인증서를 생성했습니다. 개인 키는 내보낼 수 없도록 가져왔으며 codesign 접근만 허용했습니다. 시스템 인증서 신뢰 설정과 앱 식별자, 기존 Sparkle 공개키·비밀키는 유지했습니다. Developer ID·Apple 공증은 아닙니다.
+- `bash scripts/check-code-signing.sh`: 서로 다른 두 빌드의 인증서에 결합된 지정 요구사항 일치, 상호 검증, 변조 거부, 없는 인증서 요청 시 실패·바이너리 보존 통과. 빌드와 패키징에서 공통 서명 도우미를 사용합니다.
+- `python3 scripts/check-signed-auto-update.py`: 사용자 데이터가 없는 별도 앱에서 실제 AppUpdater와 Sparkle을 사용했습니다. 서명된 목록·ZIP 다운로드, 구 프로세스 종료, 버전 2 설치와 새 프로세스 재실행, 코드 서명·지정 요구사항 유지 통과. HappyLulu 설치 파일과 출근 기록·캘린더 저장 문서가 시험 전후 같음을 확인했습니다. 루프백 서버 시험이며 공개 서버 다운로드를 대신하지 않습니다.
+- `bash scripts/check-automatic-install.sh`: 작업 중 재시작 보류, 설치 준비 중 설정 잠금, 중복 방지, 종료 취소 재시도와 오류 정리 통과. AppUpdateChecks의 ZIP·목록·릴리즈 노트 서명 및 변조 거부 검사 통과.
+- Universal arm64/x86_64 build23 패키지 생성 및 `python3 scripts/verify-release.py dist/releases/1.5.10-build23` 통과. Intel 링크의 기존 CompatibilityPacks 경고가 있었고 실제 Intel 기기는 시험하지 않았습니다. 독립 코드 검토에서 남은 조치 항목 없음.
+- 실제 설치는 고정 인증서의 build22까지 완료했습니다. 이전 build21을 백업하고 설치 실행 파일, 서명, 단일 실행 프로세스, 출근 기록과 캘린더 설정·동기화 활성화 보존을 확인했습니다. 서명 최초 전환 후 접근 상태는 notDetermined이며 사용자의 전체 접근 승인을 기다립니다. build22→23의 실제 권한 유지 시험은 아직 실행하지 않았습니다.
+- 공개 `/updates/appcast.xml`은 HTTP 404였습니다. 기존 공개 사이트 version9 소스에서 build23의 서명된 업데이트 목록·ZIP·노트를 추가한 별도 후보를 준비하고 기존 다운로드 파일을 보존했습니다. 공개 배포는 아직 하지 않았습니다.
+
+## 2026-10-08 · GitHub 통합 후보 1.5.10 build24
+
+- 최신 main의 저장 보호·시간 표시 개선을 선행 PR14와 현재 변경에 통합했습니다. 충돌한 검사 파일의 로그인·기존 설정 시간 검사 모두 유지했고 독립 검토에서 확인했습니다.
+- 통합 후 출근32개·Calendar core29개·service52개와 추가 로그인/표시 검사 통과. Mac GitHub Actions는 개인 키 없이 ad-hoc 앱 빌드와 격리 검사를 수행하며 실제 CI 결과는 PR에서 확인합니다.
+- `bash scripts/package-release.sh` 및 `python3 scripts/verify-release.py dist/releases/1.5.10-build24` 통과: Universal 두 아키텍처, 메타데이터·한영 권한 리소스·ZIP/DMG 내용·해시·심볼릭 링크·고정 인증서 서명 대조. 이전 x86_64 CompatibilityPacks 링크 경고는 유지합니다.
+- `bash scripts/generate-update-feed.sh dist/releases/1.5.10-build24/HappyLulu-1.5.10-universal.zip dist/updates-main-build24`로 새 목록을 생성했고 AppUpdateChecks로 ZIP·목록·노트 서명 및 변조 거부, 격리 Sparkle 설정을 검증했습니다. 미게시 build23 후보와 구분합니다.
+- 실제 설치 앱은 build22를 유지합니다. LaunchServices 읽기 전용 진단에서 새 인증서의 캘린더 상태가 아직 notDetermined였고, 예약 실행 후 동기화가 권한 부족으로 일시 중지됐음을 확인했습니다(enabled=false·예약 없음). 이 진단 전후 출근·논리 동기화 문서는 동일합니다. 최초 전체 접근 승인 후 에이전트가 재개·교체·권한 지속을 확인해야 하며, 공개 업데이트 피드는 아직 게시하지 않았습니다.
