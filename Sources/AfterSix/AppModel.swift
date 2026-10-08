@@ -313,9 +313,9 @@ final class AppModel: ObservableObject {
     }
 
     func duration(_ minutes: Int) -> String {
-        if minutes < 60 { return L("\(minutes)분", "\(minutes) min") }
-        if minutes % 60 == 0 { return L("\(minutes / 60)시간", "\(minutes / 60) hr") }
-        return L("\(minutes / 60)시간 \(minutes % 60)분", "\(minutes / 60) hr \(minutes % 60) min")
+        let seconds = TimeInterval(minutes) * 60
+        return L(CountdownDisplay.hoursMinutes.text(seconds: seconds, korean: true),
+                 CountdownDisplay.hoursMinutes.text(seconds: seconds, korean: false))
     }
 
     func timeLabel(_ date: Date) -> String {

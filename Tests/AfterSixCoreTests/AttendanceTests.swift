@@ -402,4 +402,25 @@ final class AttendanceTests {
             expectEqual(status?.mealMinutesRemaining, 89)
         }
     }
+    func testInvalidArrivalCannotOverwriteFile() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("HappyLulu-invalid-arrival-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = StateStore(url: folder.appendingPathComponent("state.json"))
+        var valid = AttendanceState()
+        Attendance.recordUnlock(in: &valid, at: date("2026-09-28T09:00:00"), calendar: calendar)
+        try store.save(valid)
+        let original = try Data(contentsOf: store.url)
+        for (key, day, zone) in [
+            ("wrong-key", "2026-09-28", "Asia/Seoul"),
+            ("2026-09-28", "2026-09-28", "Invalid/Zone")
+        ] {
+            var invalid = valid
+            invalid.arrivals = [key: Arrival(day: day, time: date("2026-09-28T09:00:00"),
+                                             source: .manual, timeZoneID: zone)]
+            expectThrows(try store.save(invalid))
+            try expectEqual(Data(contentsOf: store.url), original)
+            try expectEqual(store.load(), valid)
+        }
+    }
+
 }

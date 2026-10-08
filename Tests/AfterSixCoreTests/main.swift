@@ -50,6 +50,7 @@ let checks: [(String, () throws -> Void)] = [
     ("Persistence and restart", tests.testPersistenceAndRestartDoNotOverwriteArrival),
     ("No invented arrival", tests.testMissingFileDoesNotInventAttendanceOrWrite),
     ("Corrupt file preserved", tests.testCorruptFileIsPreserved),
+    ("Invalid arrival preserves file", tests.testInvalidArrivalCannotOverwriteFile),
     ("Invalid settings", tests.testInvalidSettingsCannotOverwriteFile),
     ("Unknown schema", tests.testUnknownSchemaIsRejected),
     ("Calendar and manual precedence", tests.testCalendarAndManualModePrecedence),
@@ -117,3 +118,15 @@ expectEqual(CountdownDisplay.saved(in: testDefaults), .hoursMinutes)
 print("PASS saved countdown units: existing key, every selection after reload, absent/unknown fallback; isolated test suite")
 
 try checkLoginLaunch()
+
+// Settings use whole minutes; protect the shared hours/minutes presentation.
+let settingsDurationSamples: [(Int, String, String)] = [
+    (0, "0분", "0 min"), (1, "1분", "1 min"), (59, "59분", "59 min"),
+    (60, "1시간", "1 hr"), (61, "1시간 1분", "1 hr 1 min"),
+    (240, "4시간", "4 hr"), (480, "8시간", "8 hr"), (960, "16시간", "16 hr")
+]
+for (minutes, korean, english) in settingsDurationSamples {
+    expectEqual(CountdownDisplay.hoursMinutes.text(seconds: TimeInterval(minutes) * 60, korean: true), korean)
+    expectEqual(CountdownDisplay.hoursMinutes.text(seconds: TimeInterval(minutes) * 60, korean: false), english)
+}
+print("PASS settings durations: zero, hour boundaries, valid work/break limits, Korean/English")
