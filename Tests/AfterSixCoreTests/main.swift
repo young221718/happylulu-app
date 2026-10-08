@@ -117,6 +117,8 @@ testDefaults.set("unknown-unit", forKey: "HappyLuluCountdownDisplay")
 expectEqual(CountdownDisplay.saved(in: testDefaults), .hoursMinutes)
 print("PASS saved countdown units: existing key, every selection after reload, absent/unknown fallback; isolated test suite")
 
+try checkLoginLaunch()
+
 // Settings use whole minutes; protect the shared hours/minutes presentation.
 let settingsDurationSamples: [(Int, String, String)] = [
     (0, "0분", "0 min"), (1, "1분", "1 min"), (59, "59분", "59 min"),

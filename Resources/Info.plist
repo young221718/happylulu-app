@@ -7,8 +7,8 @@
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleDisplayName</key><string>HappyLulu</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.5.5</string>
-    <key>CFBundleVersion</key><string>13</string>
+    <key>CFBundleShortVersionString</key><string>1.5.9</string>
+    <key>CFBundleVersion</key><string>17</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
@@ -18,10 +18,10 @@
     <key>CFBundleLocalizations</key><array><string>ko</string><string>en</string></array>
     <key>SUFeedURL</key><string>https://happylulu.cy-choi-lulu.chatgpt.site/updates/appcast.xml</string>
     <key>SUPublicEDKey</key><string>iUYqznysscBintQYTCAIeax/QbptNaI9lLcN4I6iUqM=</string>
-    <key>SUEnableAutomaticChecks</key><false/>
-    <key>SUAutomaticallyUpdate</key><false/>
-    <key>SUAllowsAutomaticUpdates</key><false/>
-    <key>HappyLuluUpdateServiceEnabled</key><false/>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUAutomaticallyUpdate</key><true/>
+    <key>SUAllowsAutomaticUpdates</key><true/>
+    <key>HappyLuluUpdateServiceEnabled</key><true/>
     <key>SUScheduledCheckInterval</key><integer>3600</integer>
     <key>SUScheduledImpatientCheckInterval</key><integer>86400</integer>
     <key>SUEnableSystemProfiling</key><false/>
