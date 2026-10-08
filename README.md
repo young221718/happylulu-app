@@ -3,6 +3,7 @@
   <h1>HappyLulu</h1>
   <p><strong>작은 번거로움은 덜고, 내 일에 집중.</strong></p>
   <p>자꾸 확인하게 되는 시간과 따로 챙겨야 하는 일정 정보를 한곳에.<br>Mac 메뉴바 · Windows 트레이에서, 집중할 여유를 만듭니다.</p>
+  <p><sub>Tokens by <strong>lululab</strong> &nbsp;·&nbsp; Chat by <strong>Chan-Young Choi</strong></sub></p>
   <p>
     <a href="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml/badge.svg?branch=main" alt="macOS CI · main"></a>
     <a href="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows CI · main"></a>
