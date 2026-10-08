@@ -1,0 +1,105 @@
+HappyLulu Noncommercial Source-Sharing License 1.0
+Copyright (c) 2026 Chan-Young Choi and HappyLulu contributors
+
+This is a custom source-available license. It is not an OSI-approved
+open-source license, GPL, AGPL, or Creative Commons license.
+
+1. Scope and permission
+
+The Covered Material is the original HappyLulu code, documentation, website
+source, and artwork made available with this license by their copyright
+holders. Subject to the conditions below, you may inspect, run, copy, modify,
+and redistribute the Covered Material for noncommercial purposes only.
+Rights not expressly granted are reserved. The copyright holders may grant
+separate written permissions, including commercial licenses.
+
+2. No commercial use
+
+You may not sell, rent, license for a fee, monetize with advertising, offer
+as a paid or revenue-generating service, or use the Covered Material or a
+work incorporating it to develop, operate, or support a commercial product,
+service, or an organization's internal business system without separate
+written permission from the relevant copyright holders. A nonprofit label
+does not by itself make a revenue-generating use noncommercial.
+
+An individual may run the unmodified official HappyLulu application to
+track their own working hours, including during paid employment. Merely
+running that official application does not require publishing personal
+records or any source code. This narrow permission does not authorize
+resale, managed organizational deployment, commercial code reuse, or an
+employer's integrated attendance service.
+
+3. Public source required for modification and code reuse
+
+If you modify the Covered Material, or copy or incorporate any
+copyrightable portion of its source into another program, website, or
+service, you must publish the complete corresponding source of the
+resulting combined or derived work under this same license BEFORE its
+first use, execution, deployment, or distribution. This requirement applies
+even to private or internal use and to services accessed over a network;
+it is not limited to binary distribution. Existing independent programs
+merely stored alongside the work are not thereby covered.
+
+Corresponding source means the preferred editable form of the work and
+its modifications, together with build and installation scripts,
+dependency/version information, and other material needed to understand
+and rebuild it. Publish it in a publicly accessible repository, without
+payment, account registration, or access approval. Keep the exact source
+for every distributed or deployed version available while that version is
+offered or used, and for at least three years after its last distribution
+or deployment. Include a conspicuous source URL in distributions and
+network-service interfaces.
+
+Do not publish private signing keys, tokens, passwords, personal records,
+or unrelated private data. Provide documented configuration placeholders
+and a build path using the recipient's own credentials where needed.
+Publishing the source does NOT permit commercial use.
+
+4. Attribution, notices, and redistribution
+
+Preserve this license, copyright notices, attribution, and applicable
+third-party notices. Identify your changes and their dates, link to the
+original HappyLulu repository, and do not imply endorsement by its authors.
+Redistributed unmodified copies must include this license and a link to
+their corresponding original source. Modified and combined works must
+also satisfy section 3. Do not impose additional terms or technical
+restrictions that prevent recipients exercising the rights granted here.
+No trademark or endorsement rights are granted.
+
+5. Third-party material
+
+Separately identified third-party components remain under their own
+licenses. This license neither replaces those licenses nor restricts
+rights granted independently by their copyright holders. Keep their
+required notices; see THIRD_PARTY_NOTICES.md. Independently licensed
+dependencies need not be relicensed under this license. Do not combine
+material when its license cannot coexist with these conditions.
+
+6. Termination
+
+Your permissions terminate automatically if you fail to comply with this
+license. Stop the noncompliant use and distribution. Reinstatement
+requires written permission from the relevant copyright holders. This
+does not revoke rights independently granted for third-party material or
+statutory exceptions and limitations to copyright.
+
+7. No warranty or liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE MATERIAL IS PROVIDED
+"AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+THE COPYRIGHT HOLDERS AND CONTRIBUTORS ARE NOT LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE MATERIAL OR ITS USE.
+
+Original repository: https://github.com/young221718/happylulu-app
+
+한국어 요약 (위 영문이 라이선스 본문입니다)
+
+- 상업적 이용은 별도 서면 허락 없이 금지합니다.
+- 소스를 수정하거나 저작권으로 보호되는 코드를 가져다 쓰면, 비공개
+  사용이라도 실행·배포 전에 결과물 전체의 재빌드 가능한 소스를 같은
+  라이선스로 공개해야 합니다. 소스를 공개해도 상업적 이용은 금지됩니다.
+- 개인이 공식 앱을 수정 없이 자기 출퇴근 확인에 사용하는 것은 직장에서도
+  허용됩니다. 사용자 기록·개인 키·인증정보를 공개할 의무는 없습니다.
+- 외부 의존성은 각 원래 라이선스를 따릅니다. 이 라이선스는 상업적 이용을
+  제한하므로 OSI 기준 오픈소스 라이선스가 아닌 소스 공개형 라이선스입니다.

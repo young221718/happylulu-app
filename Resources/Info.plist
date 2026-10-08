@@ -8,7 +8,7 @@
     <key>CFBundleDisplayName</key><string>HappyLulu</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.5.10</string>
-    <key>CFBundleVersion</key><string>24</string>
+    <key>CFBundleVersion</key><string>25</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
@@ -16,7 +16,7 @@
     <key>NSCalendarsFullAccessUsageDescription</key><string>허용한 일정 제목에서 오전·오후 반차를 인식하고, 별도로 선택한 다우오피스·Google 캘린더를 동기화합니다.</string>
     <key>CFBundleDevelopmentRegion</key><string>ko</string>
     <key>CFBundleLocalizations</key><array><string>ko</string><string>en</string></array>
-    <key>SUFeedURL</key><string>https://happylulu.cy-choi-lulu.chatgpt.site/updates/appcast.xml</string>
+    <key>SUFeedURL</key><string>https://github.com/young221718/happylulu-app/releases/download/macos-update-feed/appcast.xml</string>
     <key>SUPublicEDKey</key><string>iUYqznysscBintQYTCAIeax/QbptNaI9lLcN4I6iUqM=</string>
     <key>SUEnableAutomaticChecks</key><true/>
     <key>SUAutomaticallyUpdate</key><true/>

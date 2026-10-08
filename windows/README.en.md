@@ -1,6 +1,6 @@
 # HappyLulu for Windows 1.2.1 candidate
 
-The currently published version is 1.2.0. Version 1.2.1 is an unpublished candidate that rounds the hours display up to one decimal place. It retains the light cards, extra elapsed time and meal time threshold after scheduled departure; it does not verify work or approve payment.
+The publicly available version is **1.2.1**, available from [GitHub Releases](https://github.com/young221718/happylulu-app/releases/tag/windows-v1.2.1). It rounds hours up to one decimal place and retains light cards, extra elapsed time, and meal time thresholds after scheduled departure. It does not verify work or approve payment.
 
 HappyLulu runs in the Windows notification area. Left-click its icon for today's arrival, estimated departure, manual entry, and day-off action. Right-click to open the separate Settings window or exit. In Settings, choose System, Korean, or English; the preference is saved locally and the open windows and tray text refresh.
 
@@ -27,3 +27,5 @@ Core checks and a successful build do not prove real session unlock detection, t
 [Windows release notes (Korean)](RELEASE-NOTES.md)
 
 In Settings, **Remaining time display** offers milliseconds, seconds, minutes, hours, and hours/minutes (default). The preference applies to Today and the tray tooltip and persists across restarts. Hours round up in 0.1-hour (six-minute) steps: 90 minutes shows 1.5 h and 30 minutes shows 0.5 h. Whole hours omit the decimal; any positive remainder shows at least 0.1 h, and zero or expired time shows 0 h. Other units keep their existing rounding; milliseconds refresh every 0.1 seconds while the countdown is active. Attendance calculations and overtime guidance remain unchanged.
+
+License: [noncommercial use and full source disclosure for code reuse](../LICENSE). See [third-party notices](../THIRD_PARTY_NOTICES.md) and [release delivery](../DEPLOYMENT.md).

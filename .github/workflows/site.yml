@@ -1,0 +1,19 @@
+name: HappyLulu site checks
+
+on:
+  push:
+    paths: ['site/**', 'LICENSE', '.github/workflows/site.yml']
+  pull_request:
+    paths: ['site/**', 'LICENSE', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 site/check-site.py
+      - run: node --check site/dist/app.js

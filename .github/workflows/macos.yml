@@ -10,6 +10,9 @@ on:
       - 'scripts/**'
       - 'Package.swift'
       - 'Package.resolved'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'RELEASE-NOTES.md'
       - '.github/workflows/macos.yml'
   pull_request:
     paths:
@@ -19,6 +22,9 @@ on:
       - 'scripts/**'
       - 'Package.swift'
       - 'Package.resolved'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'RELEASE-NOTES.md'
       - '.github/workflows/macos.yml'
   workflow_dispatch:
 
@@ -32,7 +38,7 @@ concurrency:
 jobs:
   check:
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       # CI verifies packaging without accessing a developer's signing keys.
       HAPPY_LULU_SIGNING_IDENTITY: '-'
@@ -43,6 +49,7 @@ jobs:
           for script in scripts/*.sh; do bash -n "$script"; done
           plutil -lint Resources/Info.plist
           git diff --check
+          python3 scripts/check-release-delivery.py
       - name: Check attendance and calendar logic
         run: |
           swift run --build-system native AfterSixChecks
@@ -54,7 +61,24 @@ jobs:
           bash scripts/check-calendar-diagnostics.sh
           bash scripts/check-calendar-runtime.sh
           bash scripts/check-automatic-install.sh
-      - name: Build and verify app bundle
-        run: bash scripts/build-app.sh
+      - name: Package and verify Universal app without private keys
+        run: |
+          bash scripts/package-release.sh
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)
+          python3 scripts/verify-release.py "dist/releases/$version-build$build"
+          echo "RELEASE_DIR=dist/releases/$version-build$build" >> "$GITHUB_ENV"
       - name: Check Sparkle configuration without private keys
-        run: swift run --build-system native AppUpdateChecks dist/HappyLulu.app --configuration-only
+        run: swift run --build-system native AppUpdateChecks "$RELEASE_DIR/HappyLulu.app" --configuration-only
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HappyLulu-macos-unsigned-for-distribution-${{ github.sha }}
+          path: |
+            ${{ env.RELEASE_DIR }}/*.zip
+            ${{ env.RELEASE_DIR }}/*.dmg
+            ${{ env.RELEASE_DIR }}/*.md
+            ${{ env.RELEASE_DIR }}/LICENSE
+            ${{ env.RELEASE_DIR }}/build-source.json
+            ${{ env.RELEASE_DIR }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

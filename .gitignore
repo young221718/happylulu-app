@@ -1,5 +1,7 @@
 .build/
 dist/
+!site/dist/
+!site/dist/**
 .DS_Store
 *.app/
 .swiftpm/
