@@ -180,3 +180,11 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - Universal arm64/x86_64 build23 패키지 생성 및 `python3 scripts/verify-release.py dist/releases/1.5.10-build23` 통과. Intel 링크의 기존 CompatibilityPacks 경고가 있었고 실제 Intel 기기는 시험하지 않았습니다. 독립 코드 검토에서 남은 조치 항목 없음.
 - 실제 설치는 고정 인증서의 build22까지 완료했습니다. 이전 build21을 백업하고 설치 실행 파일, 서명, 단일 실행 프로세스, 출근 기록과 캘린더 설정·동기화 활성화 보존을 확인했습니다. 서명 최초 전환 후 접근 상태는 notDetermined이며 사용자의 전체 접근 승인을 기다립니다. build22→23의 실제 권한 유지 시험은 아직 실행하지 않았습니다.
 - 공개 `/updates/appcast.xml`은 HTTP 404였습니다. 기존 공개 사이트 version9 소스에서 build23의 서명된 업데이트 목록·ZIP·노트를 추가한 별도 후보를 준비하고 기존 다운로드 파일을 보존했습니다. 공개 배포는 아직 하지 않았습니다.
+
+## 2026-10-08 · GitHub 통합 후보 1.5.10 build24
+
+- 최신 main의 저장 보호·시간 표시 개선을 선행 PR14와 현재 변경에 통합했습니다. 충돌한 검사 파일의 로그인·기존 설정 시간 검사 모두 유지했고 독립 검토에서 확인했습니다.
+- 통합 후 출근32개·Calendar core29개·service52개와 추가 로그인/표시 검사 통과. Mac GitHub Actions는 개인 키 없이 ad-hoc 앱 빌드와 격리 검사를 수행하며 실제 CI 결과는 PR에서 확인합니다.
+- `bash scripts/package-release.sh` 및 `python3 scripts/verify-release.py dist/releases/1.5.10-build24` 통과: Universal 두 아키텍처, 메타데이터·한영 권한 리소스·ZIP/DMG 내용·해시·심볼릭 링크·고정 인증서 서명 대조. 이전 x86_64 CompatibilityPacks 링크 경고는 유지합니다.
+- `bash scripts/generate-update-feed.sh dist/releases/1.5.10-build24/HappyLulu-1.5.10-universal.zip dist/updates-main-build24`로 새 목록을 생성했고 AppUpdateChecks로 ZIP·목록·노트 서명 및 변조 거부, 격리 Sparkle 설정을 검증했습니다. 미게시 build23 후보와 구분합니다.
+- 실제 설치 앱은 build22를 유지합니다. LaunchServices 읽기 전용 진단에서 새 인증서의 캘린더 상태가 아직 notDetermined였고, 예약 실행 후 동기화가 권한 부족으로 일시 중지됐음을 확인했습니다(enabled=false·예약 없음). 이 진단 전후 출근·논리 동기화 문서는 동일합니다. 최초 전체 접근 승인 후 에이전트가 재개·교체·권한 지속을 확인해야 하며, 공개 업데이트 피드는 아직 게시하지 않았습니다.
