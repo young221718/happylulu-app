@@ -124,18 +124,14 @@ private func run() throws -> Int {
     let roundTrip = try JSONDecoder().decode(CalendarMapping.self, from: JSONEncoder().encode(CalendarMapping(id: "all-day", daouEventID: "d", googleEventID: "g", baseline: .content(allDay))))
     try check(roundTrip.baseline == .content(allDay), "all-day baseline must persist exactly"); count += 1
 
+    count += try testExpandedCalendarCore()
     return count
 }
 
-@main
-private enum Main {
-    static func main() {
-        do {
-            let count = try run()
-            print("CalendarSyncCore: \(count) checks passed")
-        } catch {
-            fputs("CalendarSyncCore: \(error)\n", stderr)
-            exit(1)
-        }
-    }
+do {
+    let count = try run()
+    print("CalendarSyncCore: \(count) checks passed")
+} catch {
+    FileHandle.standardError.write(Data("CalendarSyncCore: \(error)\n".utf8))
+    exit(1)
 }

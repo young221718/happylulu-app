@@ -2,38 +2,98 @@ import SwiftUI
 import ServiceManagement
 import AfterSixCore
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case general, work, history, calendar, updates
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .general: L("일반", "General")
+        case .work: L("근무", "Work")
+        case .history: L("출근 기록", "Arrival history")
+        case .calendar: L("캘린더", "Calendar")
+        case .updates: L("업데이트", "Updates")
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .general: "gearshape"
+        case .work: "clock"
+        case .history: "list.bullet.rectangle"
+        case .calendar: "calendar"
+        case .updates: "arrow.down.circle"
+        }
+    }
+    var subtitle: String {
+        switch self {
+        case .general: L("언어와 앱 실행 방식을 관리합니다.", "Manage language and app launch behavior.")
+        case .work: L("근무 시간과 휴게 시간을 설정합니다.", "Set your work and break hours.")
+        case .history: L("내 컴퓨터에 저장된 최근 출근 기록입니다.", "Recent arrivals saved on this Mac.")
+        case .calendar: L("반차 인식과 캘린더 동기화를 관리합니다.", "Manage half-day detection and calendar sync.")
+        case .updates: L("앱 버전과 자동 업데이트를 관리합니다.", "Manage the app version and automatic updates.")
+        }
+    }
+}
+
+@MainActor
+final class SettingsNavigation: ObservableObject {
+    @Published var selection: SettingsSection? = .general
+}
+
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var updater: AppUpdater
     @ObservedObject private var language = AppLanguage.shared
-    let onOpenCalendarSync: () -> Void
+    @ObservedObject var calendarSync: CalendarSyncModel
+    @ObservedObject var navigation: SettingsNavigation
     private let accent = Color(red: 0.16, green: 0.48, blue: 0.42)
     private var selectedLocale: Locale { _ = language.choice; return displayLocale }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(L("HappyLulu 설정", "HappyLulu Settings")).font(.title.bold())
-                    Text(L("근무 시간과 앱 동작을 관리합니다.", "Manage work hours and app behavior."))
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("HappyLulu", systemImage: "clock")
+                    .font(.headline).padding(.horizontal, 16).padding(.top, 20)
+                List(SettingsSection.allCases, selection: $navigation.selection) { section in
+                    Label(section.title, systemImage: section.symbol).tag(section)
+                        .padding(.vertical, 4)
                 }
-                generalSection
-                workSection
-                calendarSection
-                updatesSection
-                if let error = model.errorMessage {
-                    Label(visibleMessage(error), systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
+                .listStyle(.sidebar)
+                .accessibilityLabel(L("설정 항목", "Settings sections"))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(28)
+            .frame(width: 190)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(selectedSection.title).font(.title.bold())
+                        Text(selectedSection.subtitle).foregroundStyle(.secondary)
+                    }
+                    switch selectedSection {
+                    case .general: generalSection
+                    case .work: workSection
+                    case .history: historySection
+                    case .calendar:
+                        calendarSection
+                        CalendarSyncSettingsView(model: calendarSync)
+                    case .updates: updatesSection
+                    }
+                    if let error = model.errorMessage {
+                        Label(visibleMessage(error), systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(28)
+            }
+            .id(selectedSection)
         }
-        .frame(minWidth: 580, minHeight: 620)
+        .frame(minWidth: 820, minHeight: 620)
         .tint(accent)
         .environment(\.locale, selectedLocale)
     }
+
+    private var selectedSection: SettingsSection { navigation.selection ?? .general }
 
     private var generalSection: some View {
         GroupBox(L("일반", "General")) {
@@ -61,9 +121,16 @@ struct SettingsView: View {
                 if model.loginStatus == .requiresApproval {
                     Button(L("시스템 설정에서 허용", "Allow in System Settings")) { SMAppService.openSystemSettingsLoginItems() }
                 }
-                Divider()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+        }
+    }
+
+    private var historySection: some View {
+        GroupBox(L("최근 출근 기록", "Recent arrivals")) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text(L("최근 출근 기록", "Recent arrivals")).font(.headline)
                     Spacer()
                     Button(L("기록 폴더 열기", "Open records folder")) { model.showData() }
                 }
@@ -126,10 +193,6 @@ struct SettingsView: View {
                 }
                 if let message = model.calendarHalfDayMessage {
                     Text(visibleMessage(message)).foregroundStyle(.secondary)
-                }
-                Divider()
-                Button { onOpenCalendarSync() } label: {
-                    Label(L("HappyLulu Calendar 열기", "Open HappyLulu Calendar"), systemImage: "arrow.up.forward.app")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

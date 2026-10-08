@@ -13,18 +13,27 @@ public enum CalendarEventTime: Codable, Equatable, Sendable {
     case timed(start: Date, end: Date, timeZoneID: String)
 }
 
-/// Only fields that the first sync version can safely copy belong here.
+public enum CalendarEventAlarm: Codable, Equatable, Sendable {
+    case relative(TimeInterval)
+    case absolute(Date)
+}
+
+/// Content of an ordinary personal copy; meeting participants and recurrence
+/// rules remain on the original event rather than being recreated.
 public struct CalendarEventContent: Codable, Equatable, Sendable {
     public var title: String
     public var time: CalendarEventTime
     public var notes: String?
     public var location: String?
+    public var alarms: [CalendarEventAlarm]?
 
-    public init(title: String, time: CalendarEventTime, notes: String? = nil, location: String? = nil) {
+    public init(title: String, time: CalendarEventTime, notes: String? = nil, location: String? = nil,
+                alarms: [CalendarEventAlarm]? = nil) {
         self.title = title
         self.time = time
         self.notes = notes
         self.location = location
+        self.alarms = alarms
     }
 }
 
@@ -42,19 +51,23 @@ public struct CalendarEvent: Codable, Equatable, Sendable {
     public var content: CalendarEventContent
     public var exclusion: CalendarEventExclusion?
     public var syncMarker: String?
+    /// Optional for persisted observations created before invitation support.
+    public var protectedSource: Bool?
 
     public init(
         id: String,
         version: String,
         content: CalendarEventContent,
         exclusion: CalendarEventExclusion? = nil,
-        syncMarker: String? = nil
+        syncMarker: String? = nil,
+        protectedSource: Bool? = nil
     ) {
         self.id = id
         self.version = version
         self.content = content
         self.exclusion = exclusion
         self.syncMarker = syncMarker
+        self.protectedSource = protectedSource
     }
 }
 

@@ -13,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = AppModel()
     private let calendarSync = CalendarSyncModel()
     private let updater = AppUpdater()
-    private var calendarWindow: NSWindow?
+    private let settingsNavigation = SettingsNavigation()
     private var settingsWindow: NSWindow?
     private var observation: AnyCancellable?
     private var languageObservation: AnyCancellable?
@@ -67,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updater.start()
         updateTitle()
         if firstLaunch { togglePanel() }
-        if CommandLine.arguments.contains("--calendar") { openCalendarSync() }
+        if CommandLine.arguments.contains("--calendar") { openSettings(section: .calendar) }
     }
 
     private func updateTitle() {
@@ -92,38 +92,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         popover.contentViewController?.view.window?.makeKey()
     }
 
-    private func openCalendarSync() {
-        if popover.isShown { popover.performClose(nil) }
-        NSApplication.shared.setActivationPolicy(.regular)
-        if calendarWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 760),
-                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                                  backing: .buffered, defer: false)
-            window.title = "HappyLulu Calendar"
-            window.delegate = self
-            window.isReleasedWhenClosed = false
-            window.contentViewController = NSHostingController(rootView: CalendarSyncSettingsView(model: calendarSync))
-            window.center()
-            calendarWindow = window
-        }
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        calendarWindow?.makeKeyAndOrderFront(nil)
-    }
-
-    private func openSettings() {
+    private func openSettings(section: SettingsSection? = nil) {
+        if let section { settingsNavigation.selection = section }
         if popover.isShown { popover.performClose(nil) }
         NSApplication.shared.setActivationPolicy(.regular)
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 700),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 720),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
             window.title = L("HappyLulu 설정", "HappyLulu Settings")
             window.delegate = self
             window.isReleasedWhenClosed = false
             window.contentViewController = NSHostingController(rootView: SettingsView(
-                model: model, updater: updater, onOpenCalendarSync: { [weak self] in
-                    self?.openCalendarSync()
-                }))
+                model: model, updater: updater, calendarSync: calendarSync, navigation: settingsNavigation))
             window.center()
             settingsWindow = window
         }
@@ -146,12 +127,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         guard let closingWindow = notification.object as? NSWindow,
-              closingWindow === calendarWindow || closingWindow === settingsWindow else { return }
+              closingWindow === settingsWindow else { return }
         DispatchQueue.main.async { [weak self] in
-            if self?.calendarWindow?.isVisible != true && self?.settingsWindow?.isVisible != true {
+            if self?.settingsWindow?.isVisible != true {
                 NSApplication.shared.setActivationPolicy(.accessory)
             }
         }
+    }
+}
+
+let calendarRuntimeFlags = CommandLine.arguments.filter {
+    ["--calendar-preview", "--calendar-resume", "--calendar-runtime-check"].contains($0)
+}
+if !calendarRuntimeFlags.isEmpty {
+    guard calendarRuntimeFlags.count == 1 else { exit(64) }
+    let mode: CalendarSyncRuntimeChecks.Mode
+    switch calendarRuntimeFlags[0] {
+    case "--calendar-preview": mode = .previewSelected
+    case "--calendar-runtime-check": mode = .isolatedRoundtrip
+    default:
+        guard let index = CommandLine.arguments.firstIndex(of: "--reviewed-receipt"),
+              index + 1 < CommandLine.arguments.count else { exit(64) }
+        let receipt = CommandLine.arguments[index + 1]
+        guard receipt.count == 64, receipt.allSatisfy({ $0.isHexDigit }) else { exit(64) }
+        mode = .resumeSelected(reviewedReceipt: receipt)
+    }
+    Task { @MainActor in
+        do {
+            try await CalendarSyncRuntimeChecks.run(mode: mode)
+            exit(0)
+        } catch {
+            FileHandle.standardError.write(Data("HappyLulu: calendar check could not produce a report.\n".utf8))
+            exit(1)
+        }
+    }
+    dispatchMain()
+}
+
+if CommandLine.arguments.contains("--calendar-diagnostics") {
+    // Runs before app models, timers, updater and single-instance activation.
+    // Reads calendar diagnostics without requesting permission or writing events.
+    do {
+        try CalendarSyncDiagnostics.run()
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("HappyLulu: calendar diagnostics could not be read.\n".utf8))
+        exit(1)
     }
 }
 

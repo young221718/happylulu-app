@@ -36,8 +36,7 @@ done
 bash scripts/embed-sparkle.sh "$app_dir" "$project_dir/.build/distribution-arm64"
 swift scripts/make-icon.swift "$project_dir/Resources/HappyLuluIcon.png" "$staging_dir/HappyLulu.iconset"
 iconutil -c icns "$staging_dir/HappyLulu.iconset" -o "$app_dir/Contents/Resources/AppIcon.icns"
-codesign --force --sign - --identifier local.chanyoung.AfterSix "$app_dir"
-codesign --verify --deep --strict "$app_dir"
+bash scripts/sign-app.sh "$app_dir"
 
 mkdir -p "$release_dir"
 cp -R "$app_dir" "$release_dir/HappyLulu.app"
@@ -55,5 +54,5 @@ cp RELEASE-NOTES.md "$release_dir/RELEASE-NOTES.md"
   shasum -a 256 "HappyLulu-$version-universal.zip" "HappyLulu-$version-universal.dmg" > SHA256SUMS.txt
 )
 printf 'Release: %s\n' "$release_dir"
-printf 'Signing: ad-hoc; Developer ID notarization has not been performed.\n'
+printf 'Apple notarization has not been performed.\n'
 printf 'Staging retained for inspection: %s\n' "$staging_dir"

@@ -35,15 +35,29 @@ public enum SyncPlanner {
             return .held(.incompleteMapping)
         }
 
+        let decision: SyncDecision
         switch mapping.baseline {
         case nil:
-            return planInitial(mapping: mapping, daou: daou, google: google)
+            decision = planInitial(mapping: mapping, daou: daou, google: google)
         case .deleted:
-            if isDeleted(daou) && isDeleted(google) { return .settled(.deleted) }
-            return .held(.tombstoneResurrection)
+            decision = isDeleted(daou) && isDeleted(google) ? .settled(.deleted) : .held(.tombstoneResurrection)
         case let .content(previous):
-            return planMapped(mapping: mapping, previous: previous, daou: daou, google: google)
+            decision = planMapped(mapping: mapping, previous: previous, daou: daou, google: google)
         }
+        if case let .operation(operation, _) = decision {
+            let target: CalendarSide
+            switch operation {
+            case .create(_, let side, _, _), .update(_, let side, _, _, _), .delete(_, let side, _, _): target = side
+            }
+            let targetObservation = target == .daou ? daou : google
+            let protectedObservation: Bool
+            if case let .present(event) = targetObservation { protectedObservation = event.protectedSource == true }
+            else { protectedObservation = false }
+            if protectedObservation || mapping.protectedSources?.contains(target) == true {
+                return .held(.excludedEvent(.invitation))
+            }
+        }
+        return decision
     }
 
     private static func planInitial(

@@ -1,0 +1,60 @@
+name: Mac HappyLulu
+
+on:
+  push:
+    branches: [main, 'cy-agent/**', 'codex/**']
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Resources/**'
+      - 'scripts/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/macos.yml'
+  pull_request:
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Resources/**'
+      - 'scripts/**'
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/macos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      # CI verifies packaging without accessing a developer's signing keys.
+      HAPPY_LULU_SIGNING_IDENTITY: '-'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check scripts and app metadata
+        run: |
+          bash -n scripts/*.sh
+          plutil -lint Resources/Info.plist
+          git diff --check
+      - name: Check attendance and calendar logic
+        run: |
+          swift run --build-system native AfterSixChecks
+          swift run --build-system native CalendarSyncChecks
+          swift run --build-system native CalendarSyncServiceChecks
+      - name: Check isolated calendar and updater integration
+        run: |
+          bash scripts/check-calendar-model.sh
+          bash scripts/check-calendar-diagnostics.sh
+          bash scripts/check-calendar-runtime.sh
+          bash scripts/check-automatic-install.sh
+      - name: Build and verify app bundle
+        run: bash scripts/build-app.sh
+      - name: Check Sparkle configuration without private keys
+        run: swift run --build-system native AppUpdateChecks dist/HappyLulu.app --configuration-only

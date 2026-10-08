@@ -63,6 +63,10 @@ func visibleMessage(_ message: String) -> String {
         "미리보기 완료 · 시스템 캘린더는 변경하지 않았어요.": "Preview complete · system calendars unchanged.",
         "다우오피스 캘린더 내용으로 충돌을 해결했어요.": "Conflict resolved using the Daouoffice calendar.",
         "Google 캘린더 내용으로 충돌을 해결했어요.": "Conflict resolved using the Google calendar.",
+        "자동 동기화가 켜져 있어요.": "Automatic sync is on.",
+        "자동 동기화가 일시 중지되어 있어요. 새 미리보기를 확인한 뒤 다시 시작해 주세요.": "Automatic sync is paused. Review a new preview, then resume.",
+        "동기화할 캘린더를 선택하고 미리보기를 먼저 확인해 주세요.": "Select calendars and review a preview first.",
+        "자동 동기화를 일시 중지했어요. 새 미리보기를 확인한 뒤 다시 시작할 수 있어요.": "Automatic sync paused. You can resume after reviewing a new preview.",
         "자동 동기화를 일시 중지했어요.": "Automatic sync paused.",
         "자동 동기화를 다시 시작했어요.": "Automatic sync resumed.",
         "업데이트 설정을 확인하지 못했어요. 제작자에게 알려 주세요.": "Could not check update settings. Please contact the developer.",
@@ -114,7 +118,8 @@ func visibleMessage(_ message: String) -> String {
     if let translation = translations[message] { return translation }
     for (prefix, english) in [
         ("시스템 캘린더 ", "System calendars found: "),
-        ("동기화 완료 · ", "Sync complete · events applied: "),
+        ("동기화 확인 필요 · ", "Sync needs review · "),
+        ("동기화 완료 · ", "Sync complete · "),
         ("지난 동기화 오류: ", "Previous sync error: "),
         ("캘린더 동기화 저장소 오류(", "Calendar sync storage error ("),
         ("Mac 키체인 오류(", "Mac Keychain error ("),
@@ -122,7 +127,10 @@ func visibleMessage(_ message: String) -> String {
     ] where message.hasPrefix(prefix) {
         return english + String(message.dropFirst(prefix.count))
             .replacingOccurrences(of: "개를 찾았어요.", with: "")
-            .replacingOccurrences(of: "건 반영", with: "")
+            .replacingOccurrences(of: "건 반영", with: " applied")
+            .replacingOccurrences(of: "건 보류", with: " held")
+            .replacingOccurrences(of: "건 충돌", with: " conflicts")
+            .replacingOccurrences(of: "건 제외", with: " excluded")
     }
     if message.hasPrefix("캘린더에서 "), message.hasSuffix("를 인식했어요.") {
         let name = message.dropFirst("캘린더에서 ".count).dropLast("를 인식했어요.".count)

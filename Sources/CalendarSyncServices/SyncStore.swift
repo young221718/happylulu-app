@@ -69,8 +69,80 @@ public struct CalendarSyncState: Codable, Sendable {
     // Optional so sync.sqlite records from earlier versions remain readable.
     public var initialPreviewFingerprint: String?
     public var initialWriteAuthorized: Bool?
+    public var lastFailureCode: String?
+    public var lastFailureAt: Date?
+    public var pauseReason: String?
 
     public init() {}
+
+    public var hasReviewableSystemPreview: Bool {
+        configuration.daouBaseURL == "eventkit" && lastPreview != nil &&
+            (lastSuccessAt != nil || initialPreviewFingerprint != nil || initialWriteAuthorized == true)
+    }
+
+    public func canBeginSystemSync(reviewedPairKey: String?) -> Bool {
+        guard configuration.daouBaseURL == "eventkit",
+              configuration.systemAccountsConfirmed == true,
+              let daouID = configuration.daouCalendarURL, !daouID.isEmpty,
+              let googleID = configuration.googleCalendarID, !googleID.isEmpty,
+              daouID != googleID,
+              pairKey == "eventkit|\(daouID)|\(googleID)", lastPreview != nil else { return false }
+        if lastSuccessAt != nil {
+            // First-cycle fingerprints are intentionally absent in legacy,
+            // already successful sessions. Resume requires a new preview of
+            // this exact pair instead of reusing a persisted count summary.
+            return reviewedPairKey == pairKey
+        }
+        return initialPreviewFingerprint != nil
+    }
+
+    public mutating func beginSystemSync(reviewedPairKey: String?, now: Date = Date()) throws {
+        guard canBeginSystemSync(reviewedPairKey: reviewedPairKey) else {
+            throw SyncCoordinatorError.previewRequired
+        }
+        configuration.previewAccepted = true
+        configuration.enabled = true
+        nextRunAt = now
+        pauseReason = nil
+    }
+}
+
+public enum SyncRunMode: String, Codable, Sendable { case preview, sync }
+
+public struct SyncReviewIssue: Codable, Identifiable, Sendable {
+    public let id: String
+    public let side: CalendarSide
+    public let title: String
+    public let reason: String
+
+    public init(id: String, side: CalendarSide, title: String, reason: String) {
+        self.id = id
+        self.side = side
+        self.title = title
+        self.reason = reason
+    }
+
+    public static func exclusionReason(_ exclusion: CalendarEventExclusion) -> String {
+        switch exclusion {
+        case .recurring: "recurring"
+        case .invitation: "protectedInvitation"
+        case .approvalManaged: "approvalManaged"
+        case .unsupportedProperties: "unsupportedProperties"
+        case .other(let reason): reason
+        }
+    }
+
+    public static func holdReason(_ reason: SyncHoldReason) -> String {
+        switch reason {
+        case .excludedEvent(let exclusion): exclusionReason(exclusion)
+        case .incompleteObservation: "incompleteObservation"
+        case .incompleteMapping: "incompleteMapping"
+        case .unverifiedAbsence: "unverifiedAbsence"
+        case .identityMismatch: "identityMismatch"
+        case .missingVersion: "missingVersion"
+        case .tombstoneResurrection: "tombstoneResurrection"
+        }
+    }
 }
 
 public struct SyncRunSummary: Codable, Sendable {
@@ -80,6 +152,9 @@ public struct SyncRunSummary: Codable, Sendable {
     public var held = 0
     public var excluded = 0
     public var completed = 0
+    public var mode: SyncRunMode?
+    public var finishedAt: Date?
+    public var issues: [SyncReviewIssue]?
 
     public init() {}
 }

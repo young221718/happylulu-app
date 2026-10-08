@@ -53,6 +53,18 @@ public actor SyncCoordinator {
         }
         let daouID = eventID(in: conflict.daou) ?? mapping.daouEventID
         let googleID = eventID(in: conflict.google) ?? mapping.googleEventID
+        // A proposed initial pair can have two one-sided mappings. Preserve the
+        // safety history of every mapping that would be collapsed into this pair.
+        let related = state.mappings.values.filter { candidate in
+            candidate.id == mappingID ||
+                ((daouID != nil && candidate.daouEventID == daouID) ||
+                 (googleID != nil && candidate.googleEventID == googleID))
+        }
+        guard !related.contains(where: { state.pendingOperations[$0.id] != nil }) else {
+            throw SyncCoordinatorError.previewRequired
+        }
+        let protection = Set(related.flatMap { $0.protectedSources ?? [] })
+        mapping.protectedSources = protection.isEmpty ? nil : protection.sorted { $0.rawValue < $1.rawValue }
         let daouObservation = try await refreshedObservation(.daou, eventID: daouID)
         let googleObservation = try await refreshedObservation(.google, eventID: googleID)
         guard daouObservation == conflict.daou, googleObservation == conflict.google else {
@@ -60,6 +72,12 @@ public actor SyncCoordinator {
         }
         let chosen = side == .daou ? daouObservation : googleObservation
         let target = side.opposite == .daou ? daouObservation : googleObservation
+        guard !(mapping.protectedSources?.contains(side.opposite) ?? false) else {
+            throw CalendarCodecError.unsupportedEvent
+        }
+        if case .present(let event) = target, event.protectedSource == true {
+            throw CalendarCodecError.unsupportedEvent
+        }
         for observation in [chosen, target] {
             if case let .present(event) = observation, event.exclusion != nil {
                 throw CalendarCodecError.unsupportedEvent
@@ -77,7 +95,6 @@ public actor SyncCoordinator {
             }.map(\.id)
             for id in duplicateIDs {
                 state.mappings.removeValue(forKey: id)
-                state.pendingOperations.removeValue(forKey: id)
                 state.conflicts.removeValue(forKey: id)
             }
         }
@@ -172,7 +189,13 @@ public actor SyncCoordinator {
                     // write must never authorize newly discovered mappings.
                     if !state.pendingOperations.isEmpty {
                         var held = SyncRunSummary()
+                        held.mode = .sync
                         held.held = state.pendingOperations.count
+                        held.issues = state.pendingOperations.keys.sorted().map {
+                            reviewIssue(mappingID: $0, state: state, reason: "pendingJournal")
+                        }
+                        held.finishedAt = Date()
+                        state.lastPreview = held
                         state.lastErrorCode = "initialPendingUncertain"
                         state.nextRunAt = Date().addingTimeInterval(3600)
                         try await store.save(state)
@@ -204,8 +227,18 @@ public actor SyncCoordinator {
             }
 
             var summary = SyncRunSummary()
+            summary.mode = allowWrites ? .sync : .preview
+            summary.issues = []
             summary.excluded = state.daouObserved.values.filter { $0.exclusion != nil }.count
                 + state.googleObserved.values.filter { $0.exclusion != nil }.count
+            for (side, events) in [(CalendarSide.daou, state.daouObserved), (.google, state.googleObserved)] {
+                for event in events.values.sorted(by: { $0.id < $1.id }) {
+                    if let exclusion = event.exclusion {
+                        summary.issues?.append(SyncReviewIssue(id: "\(side.rawValue):\(event.id)", side: side,
+                            title: event.content.title, reason: SyncReviewIssue.exclusionReason(exclusion)))
+                    }
+                }
+            }
             let duplicateCandidates = initialDuplicateCandidates(state)
             for id in state.mappings.keys.sorted() {
                 guard var mapping = state.mappings[id] else { continue }
@@ -213,6 +246,7 @@ public actor SyncCoordinator {
                 // replanned, but it should not block independent mappings.
                 if state.pendingOperations[id] != nil {
                     summary.held += 1
+                    summary.issues?.append(reviewIssue(mappingID: id, state: state, reason: "pendingJournal"))
                     continue
                 }
                 if let candidate = duplicateCandidates[id] {
@@ -222,6 +256,13 @@ public actor SyncCoordinator {
                 }
                 let daouObservation = try await observe(.daou, eventID: mapping.daouEventID, state: state)
                 let googleObservation = try await observe(.google, eventID: mapping.googleEventID, state: state)
+                for (side, observation) in [(CalendarSide.daou, daouObservation), (.google, googleObservation)] {
+                    if case .present(let event) = observation, event.protectedSource == true,
+                       !(mapping.protectedSources?.contains(side) ?? false) {
+                        mapping.protectedSources = (mapping.protectedSources ?? []) + [side]
+                    }
+                }
+                state.mappings[id] = mapping
 
                 // A common marker verifies the pair. Older unrelated events need explicit review.
                 if mapping.baseline == nil,
@@ -239,8 +280,10 @@ public actor SyncCoordinator {
                     mapping.baseline = baseline
                     state.mappings[id] = mapping
                     state.conflicts.removeValue(forKey: id)
-                case .held:
+                case .held(let reason):
                     summary.held += 1
+                    summary.issues?.append(reviewIssue(mappingID: id, state: state,
+                        reason: SyncReviewIssue.holdReason(reason)))
                 case .conflict(let conflict):
                     state.conflicts[id] = conflict
                     summary.conflicts += 1
@@ -261,9 +304,11 @@ public actor SyncCoordinator {
                             receipt = try await provider(target).apply(operation)
                         } catch SystemCalendarError.invalidDate {
                             summary.held += 1
+                            summary.issues?.append(reviewIssue(mappingID: id, state: state, reason: "invalidDate"))
                             continue
                         } catch SystemCalendarError.uncertainWrite {
                             summary.held += 1
+                            summary.issues?.append(reviewIssue(mappingID: id, state: state, reason: "uncertainWrite"))
                             continue
                         }
                         applyReceipt(receipt, for: pending, to: &state)
@@ -284,6 +329,7 @@ public actor SyncCoordinator {
                 }
                 state.nextRunAt = Date().addingTimeInterval(3600)
             }
+            summary.finishedAt = Date()
             state.lastPreview = summary
             state.lastErrorCode = firstSystemCycle && !state.pendingOperations.isEmpty
                 ? "initialPendingUncertain" : nil
@@ -298,14 +344,20 @@ public actor SyncCoordinator {
                 state.initialPreviewFingerprint = nil
                 state.nextRunAt = nil
                 state.lastErrorCode = "previewChanged"
+                state.lastFailureCode = "previewChanged"
+                state.lastFailureAt = Date()
+                state.pauseReason = "previewChanged"
                 try await store.save(state)
                 throw error
             }
             state.lastErrorCode = errorCode(error)
+            state.lastFailureCode = state.lastErrorCode
+            state.lastFailureAt = Date()
             state.consecutiveFailures += 1
             if isAuthenticationFailure(error) {
                 state.configuration.enabled = false
                 state.nextRunAt = nil
+                state.pauseReason = "authenticationRequired"
             } else {
                 let delays: [TimeInterval] = [60, 300, 900, 3600]
                 let fallback = delays[min(state.consecutiveFailures - 1, delays.count - 1)]
@@ -315,6 +367,19 @@ public actor SyncCoordinator {
             try? await store.save(state)
             throw error
         }
+    }
+
+    private func reviewIssue(mappingID: String, state: CalendarSyncState, reason: String) -> SyncReviewIssue {
+        let mapping = state.mappings[mappingID]
+        if let id = mapping?.daouEventID, let event = state.daouObserved[id] {
+            return SyncReviewIssue(id: "mapping:" + mappingID, side: .daou,
+                                   title: event.content.title, reason: reason)
+        }
+        if let id = mapping?.googleEventID, let event = state.googleObserved[id] {
+            return SyncReviewIssue(id: "mapping:" + mappingID, side: .google,
+                                   title: event.content.title, reason: reason)
+        }
+        return SyncReviewIssue(id: "mapping:" + mappingID, side: .daou, title: "", reason: reason)
     }
 
     private func previewFingerprint(_ state: CalendarSyncState) throws -> String {
@@ -340,6 +405,18 @@ public actor SyncCoordinator {
 
     private func errorCode(_ error: Error) -> String {
         if case CalendarHTTPError.httpStatus(let status, _) = error { return "http:\(status)" }
+        if let error = error as? SystemCalendarError {
+            switch error {
+            case .accessDenied: return "accessDenied"
+            case .calendarMissing: return "calendarMissing"
+            case .calendarReadOnly: return "calendarReadOnly"
+            case .eventMissing: return "eventMissing"
+            case .eventChanged: return "eventChanged"
+            case .invalidDate: return "invalidDate"
+            case .writeNotAttempted: return "writeNotAttempted"
+            case .uncertainWrite: return "uncertainWrite"
+            }
+        }
         return String(describing: type(of: error))
     }
 
@@ -439,6 +516,15 @@ public actor SyncCoordinator {
                 state.mappings[id] = mapping
             }
         }
+        for id in state.mappings.keys {
+            guard var mapping = state.mappings[id] else { continue }
+            for (side, events) in [(CalendarSide.daou, state.daouObserved), (.google, state.googleObserved)] {
+                guard let eventID = mapping.eventID(on: side), events[eventID]?.protectedSource == true,
+                      !(mapping.protectedSources?.contains(side) ?? false) else { continue }
+                mapping.protectedSources = (mapping.protectedSources ?? []) + [side]
+            }
+            state.mappings[id] = mapping
+        }
     }
 
     private func initialDuplicateCandidates(_ state: CalendarSyncState) -> [String: SyncConflict] {
@@ -525,6 +611,9 @@ public actor SyncCoordinator {
     private func recoverPending(_ state: inout CalendarSyncState) async throws -> PendingRecovery {
         var recovery = PendingRecovery()
         for pending in state.pendingOperations.values.sorted(by: { $0.id < $1.id }) {
+            if state.mappings[pending.id]?.protectedSources?.contains(pending.operation.target) == true {
+                continue
+            }
             do {
                 let receipt = try await provider(pending.operation.target).recover(pending.operation)
                 applyReceipt(receipt, for: pending, to: &state)
@@ -537,6 +626,8 @@ public actor SyncCoordinator {
             } catch SystemCalendarError.invalidDate {
                 continue
             } catch SystemCalendarError.uncertainWrite {
+                continue
+            } catch CalendarCodecError.unsupportedEvent {
                 continue
             } catch {
                 guard let targetID = pending.operation.targetEventID else { throw error }
