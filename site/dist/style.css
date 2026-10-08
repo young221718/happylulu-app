@@ -408,3 +408,8 @@ body[data-page="calendar"] .calendar-section{padding-block:3rem 4rem}
 .how-grid p,.capability-note{font-size:.85rem;color:var(--muted)}
 .capability-note{margin:2rem 0 0;max-width:58rem}
 @media(max-width:767px){.how-grid{grid-template-columns:1fr;gap:1.2rem}.how-grid .feature-number{margin-bottom:.7rem}.hero h1{font-size:clamp(2.1rem,7.6vw,3.1rem)}}
+
+/* Project credits */
+.project-credits{display:flex;align-items:baseline;flex-wrap:wrap;gap:.55rem;margin:1.75rem 0 0;font-size:.75rem;line-height:1.8;color:var(--muted)}
+.project-credits strong{font-weight:600;color:var(--ink)}
+.project-credits+.footer-bottom{margin-top:1rem}

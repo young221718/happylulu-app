@@ -3,6 +3,7 @@
   <h1>HappyLulu</h1>
   <p><strong>Less to keep track of. More room to focus.</strong></p>
   <p>The time you keep checking and the calendar details you need, together.<br>A Mac menu bar and Windows tray companion that makes room for your work.</p>
+  <p><sub>Tokens by <strong>lululab</strong> &nbsp;·&nbsp; Chat by <strong>Chan-Young Choi</strong></sub></p>
   <p>
     <a href="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml/badge.svg?branch=main" alt="macOS CI · main"></a>
     <a href="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows CI · main"></a>
