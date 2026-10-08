@@ -1,113 +1,78 @@
 <div align="center">
-  <img src="Resources/HappyLuluIcon.png" width="104" alt="HappyLulu smiling clock icon">
+  <img src="Resources/HappyLuluIcon.png" width="104" alt="HappyLulu smiling clock logo">
   <h1>HappyLulu</h1>
-  <p><strong>Your workday, at a glance.</strong></p>
-  <p>A little less clock-watching. A little more room in your day.<br>A Mac menu bar and Windows tray companion for LuluLab colleagues.</p>
-  <p><a href="https://happylulu.cy-choi-lulu.chatgpt.site/en/">Website and downloads</a> · <a href="RELEASE-NOTES.md">Mac release notes</a> · <a href="windows/README.en.md">Windows guide</a> · <a href="README.md">한국어</a></p>
+  <p><strong>Less to keep track of. More room to focus.</strong></p>
+  <p>The time you keep checking and the calendar details you need, together.<br>A Mac menu bar and Windows tray companion that makes room for your work.</p>
+  <p>
+    <a href="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/macos.yml/badge.svg?branch=main" alt="macOS CI · main"></a>
+    <a href="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows CI · main"></a>
+    <a href="https://github.com/young221718/happylulu-app/actions/workflows/site.yml?query=branch%3Amain"><img src="https://github.com/young221718/happylulu-app/actions/workflows/site.yml/badge.svg?branch=main" alt="Site CI · main"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Custom%20NC-7057d9" alt="Custom noncommercial license"></a>
+  </p>
+  <p><a href="#downloads">Downloads</a> · <a href="docs/USER-GUIDE.en.md">User guide</a> · <a href="https://happylulu.cy-choi-lulu.chatgpt.site/en/">Web demo</a> · <a href="README.md">한국어</a></p>
 </div>
 
----
+<p align="center">
+  <img src="docs/assets/preview-en.jpg" width="1200" alt="HappyLulu web product demo example: today's time and product introduction">
+</p>
 
-## A small app for a lighter day
+<p align="center"><em>An illustrative web product demo, not a capture of the actual app. See the public-version and candidate details below.</em></p>
 
-- **Today, within reach.** Check your arrival and departure countdown. Enter an arrival manually if you have already started.
-- **Your routine.** Set work and break hours, half days, five countdown formats, and Korean or English.
-- **Two hours earlier on the last Friday.** Regular workdays get the monthly reduction automatically.
-- **Your records, on your computer.** Attendance works without an account. Connect calendars on Mac when you need them.
+<a id="available-downloads"></a>
 
-HappyLulu is a personal convenience tool, not the company's official attendance or payroll system.
+## Downloads
 
-## Available downloads
-
-| Edition | Version | Status |
+| Platform | Direct download | Requirements · details |
 | --- | --- | --- |
-| [Public Mac download](https://github.com/young221718/happylulu-app/releases/tag/macos-v1.5.5-build13) | **1.5.5 · build13** | macOS 13+ · Universal DMG/ZIP · manual installation |
-| [Public Windows download](https://github.com/young221718/happylulu-app/releases/tag/windows-v1.2.1) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime required |
-| [Mac candidate · main](https://github.com/young221718/happylulu-app/tree/main) | **1.5.10 · build25** | Unified settings, calendar improvements and fixed signing · not publicly released |
+| **Mac 1.5.5 · build13** | [Download DMG](https://github.com/young221718/happylulu-app/releases/download/macos-v1.5.5-build13/HappyLulu-1.5.5-universal.dmg) · [ZIP](https://github.com/young221718/happylulu-app/releases/download/macos-v1.5.5-build13/HappyLulu-1.5.5-universal.zip) | macOS 13+ · Universal · [Release and checksums](https://github.com/young221718/happylulu-app/releases/tag/macos-v1.5.5-build13) |
+| **Windows 1.2.1** | [Download ZIP](https://github.com/young221718/happylulu-app/releases/download/windows-v1.2.1/HappyLulu-1.2.1-windows-x64-runtime-required.zip) | Windows 10/11 x64 · .NET 10 Desktop Runtime x64 required · [Installation guide](windows/README.en.md) |
 
-The guide below describes the **current source and development candidate**. Check the [Mac](RELEASE-NOTES.md) and [Windows](windows/RELEASE-NOTES.md) notes for features in each public version. Mac and Windows attendance records do not sync with each other.
+**Mac 1.5.10 · build25 is a development candidate, not a public release.** Calendar and unified settings descriptions refer to that Mac candidate. Public automatic update-feed deployment and actual installed-app validation remain incomplete. Windows has no calendar sync or built-in automatic updater.
 
-## Three small steps
+<a id="three-small-steps"></a>
 
-1. **Download and give it a home.** On Mac, move the app from the DMG or ZIP to Applications or ~/Applications. On Windows, install the Desktop Runtime and extract the entire ZIP to a permanent folder. Quit the old app before replacing it in the same location.
+## Quick start
+
+1. **Give it a home.** On Mac, open the DMG and move the app to `Applications` or `~/Applications`. On Windows, install .NET 10 Desktop Runtime x64, then extract the entire ZIP to a permanent folder. Quit the old app before replacing it in the same location.
 2. **Click the smiling clock.** Open the menu bar or tray panel. Enter your arrival and workday mode if you have already arrived.
-3. **Make it yours.** Choose work and break hours, language and countdown format. Calendar setup is optional.
+3. **Make it yours.** Choose work and break hours, language and countdown format in settings.
 
-Mac first launch attempts login-item registration and may require system approval. A disabled preference stays disabled. Windows startup is enabled explicitly in settings. Follow the installation steps above and the [Windows README](windows/README.en.md).
+[Detailed installation and usage](docs/USER-GUIDE.en.md#three-small-steps) · [Windows guide](windows/README.en.md)
 
-## Today in the menu bar. Settings in one place.
+<a id="a-small-app-for-a-lighter-day"></a>
 
-The 1.5.10 candidate puts settings in one window with a sidebar, including Calendar.
+## Keep what matters within reach
 
-| View | Controls |
+- **Time at a glance.** See arrival, expected departure and remaining time in the menu bar or tray. Choose five display formats and Korean or English.
+- **Your workday, your settings.** Set work and break hours, morning or afternoon half days, and the last-Friday reduction.
+- **Less record keeping.** While running, the app records the first valid screen unlock and preserves manual edits and day-off choices.
+- **Calendar details together.** The Mac candidate brings half-day recognition and optional calendar setup, previews and sync into unified settings. [Supported scope (Korean)](CALENDAR.md)
+- **Personal records stay local.** Attendance works without an account. Mac and Windows attendance records do not sync with each other.
+
+HappyLulu is a personal convenience tool, not the company's official attendance, payroll or meal-payment system.
+
+<a id="today-in-the-menu-bar-settings-in-one-place"></a>
+<a id="how-a-day-is-calculated"></a>
+<a id="calendars-when-you-need-them"></a>
+<a id="records-and-updates"></a>
+<a id="releases-and-website"></a>
+
+## Documentation
+
+| Guide | What you will find |
 | --- | --- |
-| Today | Countdown, arrival, expected departure, workday mode and day off |
-| General | Language, countdown format and login startup |
-| Work | Work and break hours |
-| Attendance | Last seven records and record folder |
-| Calendar | Half-day recognition, account setup, preview, sync, conflicts and holds |
-| Updates | Version and automatic check/install preferences |
+| [User guide](docs/USER-GUIDE.en.md) | Installation, settings, workday calculations, records and known limits |
+| [Windows guide](windows/README.en.md) | Runtime requirements, tray, startup and builds |
+| [Calendar guide (Korean)](CALENDAR.md) | Mac candidate support, connections, previews and recovery |
+| [Mac release notes](RELEASE-NOTES.md) · [Windows release notes](windows/RELEASE-NOTES.md) | Version features and public status |
+| [Updates](UPDATES.md) · [Deployment](DEPLOYMENT.md) · [Validation](VALIDATION.md) | Signing, release preparation and remaining device checks (Korean) |
+| [Website source](site/README.md) | Product introduction and web demo |
 
-Choose milliseconds, seconds, minutes, hours or hours/minutes. Hours round up to one decimal: **90 minutes → 1.5 hours**, **30 minutes → 0.5 hours**. The menu bar and panel use the same preference, which survives a restart.
+<a id="development-and-evidence"></a>
 
-## How a day is calculated
+## Contributing
 
-The default is eight work hours plus one break hour. Arrival windows include their final minute.
-
-| Mode | Arrival window | Default example |
-| --- | --- | --- |
-| Regular | 08:00–10:00 | 09:00 → 18:00 |
-| Afternoon off | 08:00–10:00 | 09:00 → 13:00 |
-| Morning off | 13:00–15:00 | 13:00 → 17:00 |
-
-Regular days finish two hours earlier on the last calendar Friday of the month. Half days use four hours without a break or an extra Friday reduction. Holidays do not move this rule to another date.
-
-The Mac candidate records the first valid **observed** login-item launch or screen unlock. Later unlocks preserve arrival, manual edits and day-off choices. Ordinary manual launch, wake and session activation do not create arrivals. The app does not reconstruct hours when it was closed or detect office location/Wi-Fi; an unlock at home may count.
-
-Day off clears today's arrival after confirmation and suspends automatic recording. Saving a manual arrival resumes it. Extra elapsed minutes appear 30 minutes after scheduled departure; a meal time threshold appears after two hours. These do not verify work or approve payment.
-
-## Calendars, when you need them
-
-On Mac, open **Settings → Calendar**. macOS Internet Accounts manages account login and credentials. Two-way sync requires **full calendar access**.
-
-1. Connect your own Google and DaouOffice accounts in macOS.
-2. Select test calendars from different accounts.
-3. Review planned changes, holds and conflicts before starting.
-
-The 1.5.10 candidate preserves ordinary display reminders. Recurring events are copied as individual occurrences within **30 days before through 365 days after today**. Invitations become personal copies without re-inviting attendees, and the original stays protected. Automatic deletion, out-of-range occurrences and special alarms remain held with a reason.
-
-Resume a paused connection after a fresh preview. A successful local macOS calendar save is separate from confirmation on both web servers. [Calendar setup, supported fields and recovery (Korean)](CALENDAR.md).
-
-Optional half-day recognition reads accessible calendar titles. Shared events may be mistaken for yours; choose a manual mode or disable recognition. Manual selection takes priority.
-
-## Records and updates
-
-Mac attendance stays in `~/Library/Application Support/AfterSix/state.json`. The app identifier and existing storage path are retained. Never delete records to update the app. Calendar connection state is local; macOS manages credentials. No attendance telemetry, keyboard or screen collection is added.
-
-Automatic checking, downloading, idle installation and fixed self-signing are implemented in the candidate. **Public update-feed deployment and actual installed-app validation remain incomplete.** Older versions with updates disabled need one manual replacement with an enabled version. Track [update preparation](UPDATES.md) and [issue #3](https://github.com/young221718/happylulu-app/issues/3).
-
-Apple Developer ID/notarization and Windows publisher signing are incomplete. Universal builds include Intel code, but Intel physical testing is pending. Follow managed-device policy. Older versions may preserve but stop writing records containing an unsupported login source; do not remove the records to downgrade.
-
-## Development and evidence
-
-Use Swift 6 and macOS Command Line Tools. Windows has its own [.NET build guide](windows/README.en.md).
-
-```sh
-swift run --build-system native AfterSixChecks
-swift run --build-system native CalendarSyncChecks
-swift run --build-system native CalendarSyncServiceChecks
-bash scripts/build-app.sh
-```
-
-Mac PR CI checks core logic, isolated integration, ad-hoc app packaging and Sparkle configuration without private signing keys. See [UPDATES.md](UPDATES.md) for local fixed signing, signed installation tests and Universal release checks.
-
-Automated checks, app builds, actual device behavior and web-server readback are separate evidence. Track [validation](VALIDATION.md), [Mac device checks #4](https://github.com/young221718/happylulu-app/issues/4) and [login startup #13](https://github.com/young221718/happylulu-app/issues/13).
-
-Changes follow **issue → task branch → checks and independent review → PR → merge → signing/deployment → readback**. Keep personal records, keys, credentials and generated apps out of Git.
-
-## Releases and website
-
-GitHub owns source, CI, release assets, checksums and the signed update feed. The [website](https://happylulu.cy-choi-lulu.chatgpt.site/) focuses on the product, an interactive demo and download links. See [DEPLOYMENT.md](DEPLOYMENT.md) for preparation, verification, draft releases, promotion and readback. Website source lives in [site/](site/README.md). Private signing keys stay in the maintainer’s local keychain; CI does not publish an unverified signed update. The GitHub feed migration requires a one-time installation for existing apps using the old Site feed.
+Start with an [issue](https://github.com/young221718/happylulu-app/issues). Changes follow issue → task branch → checks and independent review → PR. Read the [build and validation guide](docs/USER-GUIDE.en.md#development-and-evidence), and keep personal records, keys, credentials and generated apps out of Git.
 
 ## License
 

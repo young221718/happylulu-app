@@ -397,3 +397,14 @@ body[data-page="calendar"] .calendar-section{padding-block:3rem 4rem}
 .footer-bottom a:hover{text-decoration:underline;text-underline-offset:4px}
 @media(max-width:800px){.github-section{gap:2rem}.site-nav{font-size:.68rem}.site-nav a{padding-inline:.45rem}}
 @media(max-width:650px){.github-section{grid-template-columns:1fr;gap:2rem}.github-links a{font-size:.83rem;padding-block:1.2rem}.guide-handoff{min-height:60vh}.handoff-actions{gap:1.25rem}.release-guide-links{gap:1rem}.download-card .download-doc-link{font-size:.75rem}.site-nav a{font-size:.8rem;padding-inline:.9rem}}
+
+/* Focus-led product introduction and quick start. */
+.hero h1{font-size:clamp(2.45rem,4.15vw,4rem);line-height:1.23;letter-spacing:-.065em}
+.download-section{padding-top:3.5rem}
+.how-section{border-top:1px solid var(--line)}
+.how-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.5rem}
+.how-grid article{border-top:1px solid var(--line);padding-top:1.2rem}
+.how-grid .feature-number{color:var(--teal);font-size:.72rem;display:block;margin-bottom:1.5rem}
+.how-grid p,.capability-note{font-size:.85rem;color:var(--muted)}
+.capability-note{margin:2rem 0 0;max-width:58rem}
+@media(max-width:767px){.how-grid{grid-template-columns:1fr;gap:1.2rem}.how-grid .feature-number{margin-bottom:.7rem}.hero h1{font-size:clamp(2.1rem,7.6vw,3.1rem)}}

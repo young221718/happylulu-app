@@ -1,6 +1,6 @@
 # HappyLulu 소개 사이트
 
-이 디렉터리가 GitHub의 사이트 정본입니다. [공식 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/)는 브랜드·금요일 데모·핵심 기능·다운로드 연결에 집중합니다. 앱 릴리즈·체크섬·설치 문서·서명 업데이트 피드는 GitHub가 담당합니다.
+이 디렉터리가 GitHub의 사이트 정본입니다. [공식 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/)는 ‘작은 번거로움은 덜고, 내 일에 집중.’ 컨셉으로 다운로드·할 수 있는 일·사용 방법에 집중합니다. 앱 릴리즈·전체 변경 기록·체크섬·서명 업데이트 피드는 GitHub가 담당합니다. 사이트의 릴리즈 노트 복제본은 제거했으며 기존 `/releases/`와 `/en/releases/`는 GitHub Releases로 이동하는 안내만 남깁니다.
 
 - `dist/`: 빌드 없이 게시할 한·영 HTML/CSS/JS와 브랜드 원본 이미지
 - `.openai/hosting.json`: 기존 공식 Sites project_id·공개 범위를 보존하는 정적 배포 선언
