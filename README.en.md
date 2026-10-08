@@ -1,48 +1,106 @@
-# HappyLulu
+<div align="center">
+  <img src="Resources/HappyLuluIcon.png" width="104" alt="HappyLulu smiling clock icon">
+  <h1>HappyLulu</h1>
+  <p><strong>Your workday, at a glance.</strong></p>
+  <p>A little less clock-watching. A little more room in your day.<br>A Mac menu bar and Windows tray companion for LuluLab colleagues.</p>
+  <p><a href="https://happylulu.cy-choi-lulu.chatgpt.site/en/">Website and downloads</a> · <a href="RELEASE-NOTES.md">Mac release notes</a> · <a href="windows/README.en.md">Windows guide</a> · <a href="README.md">한국어</a></p>
+</div>
 
+---
 
-The latest version is **Mac 1.5.4 build12**, with extra elapsed minutes after 30 minutes and the meal time threshold two hours after scheduled departure. This does not verify work or approve payment. Selectable countdown units are also included.
+## A small app for a lighter day
 
-[Mac release notes (Korean)](RELEASE-NOTES.md) · [Windows release notes (Korean)](windows/RELEASE-NOTES.md)
+- **Today, within reach.** Check your arrival and departure countdown. Enter an arrival manually if you have already started.
+- **Your routine.** Set work and break hours, half days, five countdown formats, and Korean or English.
+- **Two hours earlier on the last Friday.** Regular workdays get the monthly reduction automatically.
+- **Your records, on your computer.** Attendance works without an account. Connect calendars on Mac when you need them.
 
-[한국어](README.md) · [Website](https://happylulu.cy-choi-lulu.chatgpt.site/en/)
+HappyLulu is a personal convenience tool, not the company's official attendance or payroll system.
 
-A small local attendance companion for LuluLab colleagues. Your first valid unlock records arrival; the menu bar or system tray shows when you can go home. This is not the company's official attendance or payroll system.
+## Available downloads
 
-## Get started
+| Edition | Version | Status |
+| --- | --- | --- |
+| [Public Mac download](https://happylulu.cy-choi-lulu.chatgpt.site/en/#download) | **1.5.5 · build13** | macOS 13+ · Universal DMG/ZIP · manual installation |
+| [Public Windows download](https://happylulu.cy-choi-lulu.chatgpt.site/en/#windows) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime required |
+| [Mac candidate · PR #19](https://github.com/young221718/happylulu-app/pull/19) | **1.5.10 · build24** | Unified settings, calendar improvements and fixed signing · not publicly released |
 
-**Mac:** download the DMG or ZIP from the website, quit your existing copy, move HappyLulu to Applications and open it. Replacing the app retains the existing `AfterSix` records. Click the smiling clock; enter your arrival manually if you have already arrived. Settings opens in a separate window. Choose System, Korean or English under Language.
+The guide below describes the **current source and development candidate**. Check the [Mac](RELEASE-NOTES.md) and [Windows](windows/RELEASE-NOTES.md) notes for features in each public version. Mac and Windows attendance records do not sync with each other.
 
-**Windows:** see [Windows setup](windows/README.en.md). The initial edition includes a tray, separate settings, manual arrival, half days, local records and Korean/English UI. Calendar sync is currently Mac-only. Mac and Windows do not share attendance records.
+## Three small steps
 
-On Mac, the first launch attempts login-item registration and may require system approval. Turning it off keeps it off. On Windows, startup is an explicit settings choice.
+1. **Download and give it a home.** On Mac, move the app from the DMG or ZIP to Applications or ~/Applications. On Windows, install the Desktop Runtime and extract the entire ZIP to a permanent folder. Quit the old app before replacing it in the same location.
+2. **Click the smiling clock.** Open the menu bar or tray panel. Enter your arrival and workday mode if you have already arrived.
+3. **Make it yours.** Choose work and break hours, language and countdown format. Calendar setup is optional.
 
-## Workday rules
+Mac first launch attempts login-item registration and may require system approval. A disabled preference stays disabled. Windows startup is enabled explicitly in settings. See the [installation guide](https://happylulu.cy-choi-lulu.chatgpt.site/install/) and [Windows README](windows/README.en.md).
+
+## Today in the menu bar. Settings in one place.
+
+The 1.5.10 candidate puts settings in one window with a sidebar, including Calendar.
+
+| View | Controls |
+| --- | --- |
+| Today | Countdown, arrival, expected departure, workday mode and day off |
+| General | Language, countdown format and login startup |
+| Work | Work and break hours |
+| Attendance | Last seven records and record folder |
+| Calendar | Half-day recognition, account setup, preview, sync, conflicts and holds |
+| Updates | Version and automatic check/install preferences |
+
+Choose milliseconds, seconds, minutes, hours or hours/minutes. Hours round up to one decimal: **90 minutes → 1.5 hours**, **30 minutes → 0.5 hours**. The menu bar and panel use the same preference, which survives a restart.
+
+## How a day is calculated
+
+The default is eight work hours plus one break hour. Arrival windows include their final minute.
 
 | Mode | Arrival window | Default example |
 | --- | --- | --- |
-| Regular | 08:00–10:00 inclusive of the last minute | 09:00 → 18:00 |
-| Afternoon off | 08:00–10:00 inclusive of the last minute | 09:00 → 13:00 |
-| Morning off | 13:00–15:00 inclusive of the last minute | 13:00 → 17:00 |
+| Regular | 08:00–10:00 | 09:00 → 18:00 |
+| Afternoon off | 08:00–10:00 | 09:00 → 13:00 |
+| Morning off | 13:00–15:00 | 13:00 → 17:00 |
 
-Regular days include eight work hours plus one break hour by default. The last calendar Friday of each month subtracts two hours. Half days always use four hours without breaks or the Friday reduction. Manual workday selection takes priority over inference. Future arrivals are rejected, and later unlocks do not overwrite the day's arrival.
+Regular days finish two hours earlier on the last calendar Friday of the month. Half days use four hours without a break or an extra Friday reduction. Holidays do not move this rule to another date.
 
-Day off removes today's arrival after confirmation and suspends automatic recording. Saving a manual arrival resumes it. Wake, login or session activation alone does not create an arrival. Closed-app history cannot be reconstructed; an unlock at home may count as arrival.
+The Mac candidate records the first valid **observed** login-item launch or screen unlock. Later unlocks preserve arrival, manual edits and day-off choices. Ordinary manual launch, wake and session activation do not create arrivals. The app does not reconstruct hours when it was closed or detect office location/Wi-Fi; an unlock at home may count.
 
-## Calendar beta on Mac
+Day off clears today's arrival after confirmation and suspends automatic recording. Saving a manual arrival resumes it. Extra elapsed minutes appear 30 minutes after scheduled departure; a meal time threshold appears after two hours. These do not verify work or approve payment.
 
-Add your own Google and CalDAV accounts in macOS Internet Accounts. Use the company's server-copy button in HappyLulu Calendar, and confirm calendars appear in Apple's Calendar app. Select empty test calendars from different accounts, review the initial preview, then enable sync.
+## Calendars, when you need them
 
-Ordinary event additions and edits, including all-day events, are supported. Deletions, recurrence, invitations, reminders and unsupported fields are skipped. Review conflicts and verify changes on both calendar websites. [Full calendar contract and recovery notes (Korean)](CALENDAR.md).
+On Mac, open **Settings → Calendar**. macOS Internet Accounts manages account login and credentials. Two-way sync requires **full calendar access**.
 
-Optional half-day recognition reads all accessible calendar titles. Shared events belonging to someone else may be mistaken for yours. Use a manual mode or turn recognition off when needed.
+1. Connect your own Google and DaouOffice accounts in macOS.
+2. Select test calendars from different accounts.
+3. Review planned changes, holds and conflicts before starting.
 
-## Updates and verification
+The 1.5.10 candidate preserves ordinary display reminders. Recurring events are copied as individual occurrences within **30 days before through 365 days after today**. Invitations become personal copies without re-inviting attendees, and the original stays protected. Automatic deletion, out-of-range occurrences and special alarms remain held with a reason.
 
-Updates are installed manually. Signed automatic-update activation is paused. Apple notarization and Windows publisher signing are not complete. Intel Mac physical testing is deferred. Follow your company's software policy on managed computers.
+Resume a paused connection after a fresh preview. A successful local macOS calendar save is separate from confirmation on both web servers. [Calendar setup, supported fields and recovery (Korean)](CALENDAR.md).
 
-Mac records stay in `~/Library/Application Support/AfterSix/state.json`; no attendance telemetry or keyboard/screen collection is added. The Windows storage path and build commands are documented in its own README. Do not delete or replace state files to update the application.
+Optional half-day recognition reads accessible calendar titles. Shared events may be mistaken for yours; choose a manual mode or disable recognition. Manual selection takes priority.
 
-[Validation evidence and remaining device tests (Korean)](VALIDATION.md) · [Update status (Korean)](UPDATES.md).
+## Records and updates
 
-Countdown display in Settings supports milliseconds, seconds, minutes, hours, and hours/minutes (default). Values round up to the selected unit in both the menu bar and today panel. Milliseconds refresh every 0.1 seconds during the countdown; other modes refresh every second. The choice persists after restart.
+Mac attendance stays in `~/Library/Application Support/AfterSix/state.json`. The app identifier and existing storage path are retained. Never delete records to update the app. Calendar connection state is local; macOS manages credentials. No attendance telemetry, keyboard or screen collection is added.
+
+Automatic checking, downloading, idle installation and fixed self-signing are implemented in the candidate. **Public update-feed deployment and actual installed-app validation remain incomplete.** Older versions with updates disabled need one manual replacement with an enabled version. Track [update preparation](UPDATES.md) and [issue #3](https://github.com/young221718/happylulu-app/issues/3).
+
+Apple Developer ID/notarization and Windows publisher signing are incomplete. Universal builds include Intel code, but Intel physical testing is pending. Follow managed-device policy. Older versions may preserve but stop writing records containing an unsupported login source; do not remove the records to downgrade.
+
+## Development and evidence
+
+Use Swift 6 and macOS Command Line Tools. Windows has its own [.NET build guide](windows/README.en.md).
+
+```sh
+swift run --build-system native AfterSixChecks
+swift run --build-system native CalendarSyncChecks
+swift run --build-system native CalendarSyncServiceChecks
+bash scripts/build-app.sh
+```
+
+Mac PR CI checks core logic, isolated integration, ad-hoc app packaging and Sparkle configuration without private signing keys. See [UPDATES.md](UPDATES.md) for local fixed signing, signed installation tests and Universal release checks.
+
+Automated checks, app builds, actual device behavior and web-server readback are separate evidence. Track [validation](VALIDATION.md), [Mac device checks #4](https://github.com/young221718/happylulu-app/issues/4) and [login startup #13](https://github.com/young221718/happylulu-app/issues/13).
+
+Changes follow **issue → task branch → checks and independent review → PR → merge → signing/deployment → readback**. Keep personal records, keys, credentials and generated apps out of Git.
