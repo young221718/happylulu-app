@@ -10,8 +10,9 @@ and Korean user documentation belong to this repository.
 - Read the current Git status and checkout identity before editing. Preserve
   unrelated changes and user attendance data.
 - When used inside Hive, `develop/` is the baseline directory on `main`.
-  Future feature checkouts use sibling `worktrees/<task>/` directories and
-  `cy-agent/` branches. Compare their common Git directory before reuse.
+  New manually managed feature checkouts use direct sibling `<task>/` directories
+  and `codex/` branches; preserve existing checkout and branch names. Compare
+  their common Git directory before reuse.
 - Use the smallest useful workflow. Material behavior changes require an
   independent review after relevant checks; simple docs need no extra agents.
 - Keep attendance on the local Mac. Do not add network collection or accounts
@@ -42,3 +43,15 @@ git diff --check
 Use the existing macOS Command Line Tools; do not install dependencies merely
 to run checks. Unit checks, build/signature validation, actual unlock detection,
 and login-after-reboot behavior are separate evidence. Record their limits.
+
+## Safe personal maintenance
+
+- Keep attention on the requested repository and demonstrated defects. Use small,
+  testable changes; preserve the operator's data and unfinished work.
+- Reproduce a defect with a failing check before fixing it. Run relevant regression
+  checks and obtain independent review for behavior changes before claiming done.
+- Inspect branch ancestry, dirty/ignored files, and active work before integration.
+  Preserve unique commits and unfinished checkouts. Clean up only confirmed merged,
+  clean, inactive task branches within explicit cleanup authorization.
+- Report executed checks, review findings, commit/merge evidence, and remaining
+  blockers. Completion requires verified results. Deployment needs its own request.

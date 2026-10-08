@@ -72,8 +72,6 @@ public enum SyncPlanner {
             return .operation(.create(mappingID: mapping.id, target: .daou, sourceEventID: source.id, content: source.content), newBaseline: .content(source.content))
         case (.present, .present):
             return .conflict(SyncConflict(mappingID: mapping.id, reason: .initialPairAmbiguous, baseline: nil, daou: daou, google: google))
-        case (.absent, .absent):
-            return .held(.unverifiedAbsence)
         default:
             return .held(.unverifiedAbsence)
         }
