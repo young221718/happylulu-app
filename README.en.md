@@ -21,9 +21,9 @@ HappyLulu is a personal convenience tool, not the company's official attendance 
 
 | Edition | Version | Status |
 | --- | --- | --- |
-| [Public Mac download](https://happylulu.cy-choi-lulu.chatgpt.site/en/#download) | **1.5.5 · build13** | macOS 13+ · Universal DMG/ZIP · manual installation |
-| [Public Windows download](https://happylulu.cy-choi-lulu.chatgpt.site/en/#windows) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime required |
-| [Mac candidate · PR #19](https://github.com/young221718/happylulu-app/pull/19) | **1.5.10 · build24** | Unified settings, calendar improvements and fixed signing · not publicly released |
+| [Public Mac download](https://github.com/young221718/happylulu-app/releases/tag/macos-v1.5.5-build13) | **1.5.5 · build13** | macOS 13+ · Universal DMG/ZIP · manual installation |
+| [Public Windows download](https://github.com/young221718/happylulu-app/releases/tag/windows-v1.2.1) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime required |
+| [Mac candidate · main](https://github.com/young221718/happylulu-app/tree/main) | **1.5.10 · build25** | Unified settings, calendar improvements and fixed signing · not publicly released |
 
 The guide below describes the **current source and development candidate**. Check the [Mac](RELEASE-NOTES.md) and [Windows](windows/RELEASE-NOTES.md) notes for features in each public version. Mac and Windows attendance records do not sync with each other.
 
@@ -33,7 +33,7 @@ The guide below describes the **current source and development candidate**. Chec
 2. **Click the smiling clock.** Open the menu bar or tray panel. Enter your arrival and workday mode if you have already arrived.
 3. **Make it yours.** Choose work and break hours, language and countdown format. Calendar setup is optional.
 
-Mac first launch attempts login-item registration and may require system approval. A disabled preference stays disabled. Windows startup is enabled explicitly in settings. See the [installation guide](https://happylulu.cy-choi-lulu.chatgpt.site/install/) and [Windows README](windows/README.en.md).
+Mac first launch attempts login-item registration and may require system approval. A disabled preference stays disabled. Windows startup is enabled explicitly in settings. Follow the installation steps above and the [Windows README](windows/README.en.md).
 
 ## Today in the menu bar. Settings in one place.
 
@@ -104,3 +104,11 @@ Mac PR CI checks core logic, isolated integration, ad-hoc app packaging and Spar
 Automated checks, app builds, actual device behavior and web-server readback are separate evidence. Track [validation](VALIDATION.md), [Mac device checks #4](https://github.com/young221718/happylulu-app/issues/4) and [login startup #13](https://github.com/young221718/happylulu-app/issues/13).
 
 Changes follow **issue → task branch → checks and independent review → PR → merge → signing/deployment → readback**. Keep personal records, keys, credentials and generated apps out of Git.
+
+## Releases and website
+
+GitHub owns source, CI, release assets, checksums and the signed update feed. The [website](https://happylulu.cy-choi-lulu.chatgpt.site/) focuses on the product, an interactive demo and download links. See [DEPLOYMENT.md](DEPLOYMENT.md) for preparation, verification, draft releases, promotion and readback. Website source lives in [site/](site/README.md). Private signing keys stay in the maintainer’s local keychain; CI does not publish an unverified signed update. The GitHub feed migration requires a one-time installation for existing apps using the old Site feed.
+
+## License
+
+[HappyLulu Noncommercial Source-Sharing License 1.0](LICENSE): commercial use is prohibited without separate written permission. Modifying or reusing the code requires publishing the complete corresponding source of the resulting work under the same license before first use, including private use and network services. Individuals may run the unmodified official app to track their own working hours, including at work. Personal data and signing keys are never subject to source publication. This is **source-available, not OSI open source**. [Third-party notices](THIRD_PARTY_NOTICES.md) remain under their original licenses.

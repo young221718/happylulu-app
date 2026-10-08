@@ -5,7 +5,7 @@
 - 기본은 시작 시와 1시간 주기로 새 버전을 확인하고 자동 다운로드·설치합니다. 기존에 저장된 사용자 설정은 존중하며, 설정의 업데이트에서 자동 확인·자동 설치를 각각 바꿀 수 있습니다.
 - 자동 재시작은 앱 창이 닫히고 앱이 비활성이며 출근 저장·캘린더 동기화가 진행 중이 아닐 때 수행합니다. 준비된 업데이트는 정상 종료 시에도 설치됩니다. 설치 준비가 끝나면 해당 설치는 취소하지 않으며 재시작까지 설정 변경을 잠시 막습니다.
 - 출근·캘린더 연결 기록은 앱 bundle 밖에 보관하므로 교체 시 유지됩니다. 실제 교체 전후 파일 해시/버전/실행 확인은 별도 검증합니다.
-- 앱 ZIP, 업데이트 목록과 릴리즈 노트를 Ed25519로 서명하고 앱은 서명과 변조를 검증합니다. HTTPS feed 주소와 앱 공개키는 유지합니다.
+- 앱 ZIP, 업데이트 목록과 릴리즈 노트를 Ed25519로 서명하고 앱은 서명과 변조를 검증합니다. 앱 공개키는 유지합니다. 1.5.10 build25 후보부터 feed는 GitHub Releases의 고정 주소를 사용합니다.
 - 비밀키는 제작자 맥의 키체인 `happylulu-updates`에 있으며 내보내거나 Git/사이트에 저장하지 않습니다. 키체인 승인창이 표시되면 사용자가 직접 승인합니다.
 - Developer ID 서명·Apple 공증은 미완료입니다. 자동 업데이트 서명과는 별개이며 다른 맥의 보안 정책/설치 권한에 따라 확인이 필요할 수 있습니다. Intel 실기기는 보류입니다.
 
@@ -19,15 +19,23 @@
 
 ## 새 버전 배포
 
-`CFBundleVersion`을 기존보다 큰 정수로 올리고 버전·RELEASE-NOTES.md를 갱신합니다.
+배포 절차와 승격 조건의 정본은 [DEPLOYMENT.md](DEPLOYMENT.md)입니다. 현재 소스는 **1.5.10 build25 후보**이며 이 변경만으로 서명·공개·실제 업데이트 시험이 완료된 것은 아닙니다.
+
+- 앱 feed: `https://github.com/young221718/happylulu-app/releases/download/macos-update-feed/appcast.xml`
+- ZIP·DMG·노트·체크섬·서명된 appcast의 보관 태그: `macos-v1.5.10-build25`
+- `macos-update-feed`는 mutable prerelease이며 Latest로 표시하지 않습니다. 서명한 XML을 수정하지 않고 그대로 올립니다.
+- 소스의 LICENSE와 THIRD_PARTY_NOTICES.md를 앱 Resources, ZIP 내부 앱, DMG와 릴리스 자산에 동봉합니다. 과거 바이너리는 다시 포장하거나 새 라이선스가 소급 동봉된 것으로 표시하지 않습니다.
+- 공개 CI는 검증과 ad-hoc Universal 패키지 artifact만 만듭니다. 로컬 서명키나 키체인 정보를 GitHub Secrets에 넣지 않습니다.
 
 ```sh
-bash scripts/package-release.sh
-bash scripts/generate-update-feed.sh dist/releases/1.5.10-build24/HappyLulu-1.5.10-universal.zip
-swift run --build-system native AppUpdateChecks dist/releases/1.5.10-build24/HappyLulu.app dist/updates/appcast.xml
+bash scripts/prepare-release.sh
+python3 scripts/release_delivery.py check dist/releases/1.5.10-build25
+python3 scripts/release_delivery.py draft dist/releases/1.5.10-build25 --dry-run
 ```
 
-검증된 `dist/updates/`의 ZIP·appcast.xml·릴리즈 노트를 기존 사이트 `/updates/`에 게시합니다. 서명 후 파일을 수정하면 재서명해야 합니다. `/downloads/`에도 수동 설치 파일을 제공하며 이전 배포 파일은 보존합니다. 실제 게시·공개 범위 변경은 사용자 승인 범위 내에서 진행합니다.
+`prepare-release.sh`는 사용자가 승인한 로컬 키체인 서명만 사용합니다. 실제 GitHub 쓰기는 별도 `draft`와 `promote` 명령입니다. `check`와 `--dry-run`은 GitHub에 접속하지 않습니다. 실제 HappyLulu 교체·재실행, 캘린더 권한·출근 기록·캘린더 연결 보존 증거가 이 ZIP 해시와 일치하지 않으면 승격하지 못합니다.
+
+기존 설치본은 종전 사이트의 `/updates/appcast.xml`을 계속 읽습니다. 그 설치본을 연결하려면 동일한 서명 appcast 바이트를 종전 주소에도 제공하는 별도 이전 작업이 필요합니다. GitHub feed만 공개한 상태에서는 기존 설치본의 자동 이전을 주장하지 않습니다. 원래 다운로드와 서명 파일은 보존합니다.
 
 검사 범위는 설정/서명·변조 거부, 서버 응답의 XML/Content-Type/해시, 이전 설치본에서 다운로드·교체·재실행 및 기록 보존입니다. 서버 게시만으로 실제 설치 성공을 주장하지 않습니다.
 

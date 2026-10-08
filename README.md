@@ -21,9 +21,9 @@ HappyLulu는 개인 편의 도구입니다. 회사의 공식 근태 시스템이
 
 | 구분 | 버전 | 상태 |
 | --- | --- | --- |
-| [Mac 공개 다운로드](https://happylulu.cy-choi-lulu.chatgpt.site/#download) | **1.5.5 · build13** | macOS 13 이상 · Universal DMG/ZIP · 수동 설치 |
-| [Windows 공개 다운로드](https://happylulu.cy-choi-lulu.chatgpt.site/#windows) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime 필요 |
-| [Mac 개발 후보 · PR #19](https://github.com/young221718/happylulu-app/pull/19) | **1.5.10 · build24** | 설정 통합·캘린더 개선·고정 서명 · 공개 배포 전 |
+| [Mac 공개 다운로드](https://github.com/young221718/happylulu-app/releases/tag/macos-v1.5.5-build13) | **1.5.5 · build13** | macOS 13 이상 · Universal DMG/ZIP · 수동 설치 |
+| [Windows 공개 다운로드](https://github.com/young221718/happylulu-app/releases/tag/windows-v1.2.1) | **1.2.1** | Windows 10/11 x64 · .NET 10 Desktop Runtime 필요 |
+| [Mac 개발 후보 · main](https://github.com/young221718/happylulu-app/tree/main) | **1.5.10 · build25** | 설정 통합·캘린더 개선·고정 서명 · 공개 배포 전 |
 
 아래 설명은 **현재 소스와 개발 후보 기준**입니다. 공개 다운로드에 포함된 기능은 해당 [Mac](RELEASE-NOTES.md)·[Windows](windows/RELEASE-NOTES.md) 버전의 릴리즈 기록도 확인하세요. Mac과 Windows의 출퇴근 기록은 서로 동기화하지 않습니다.
 
@@ -33,7 +33,7 @@ HappyLulu는 개인 편의 도구입니다. 회사의 공식 근태 시스템이
 2. **웃는 시계를 누르세요.** 메뉴바·트레이에서 오늘을 확인합니다. 이미 출근했다면 출근 시각과 근무 유형을 직접 저장하세요.
 3. **내 하루에 맞추세요.** 설정에서 근무·휴게시간, 언어와 시간 표시를 선택합니다. 캘린더는 필요할 때 연결하면 됩니다.
 
-Mac 첫 실행에는 로그인 자동 실행 등록을 시도하며 시스템 승인이 필요할 수 있습니다. 설정에서 끈 선택은 다시 켜지 않습니다. Windows 자동 실행은 설정에서 직접 켭니다. 자세한 설치 안내는 [사이트](https://happylulu.cy-choi-lulu.chatgpt.site/install/)와 [Windows README](windows/README.md)에 있습니다.
+Mac 첫 실행에는 로그인 자동 실행 등록을 시도하며 시스템 승인이 필요할 수 있습니다. 설정에서 끈 선택은 다시 켜지 않습니다. Windows 자동 실행은 설정에서 직접 켭니다. 설치 안내는 위 절차와 [Windows README](windows/README.md)에 있습니다.
 
 ## 메뉴바는 오늘, 사이드바는 설정
 
@@ -106,3 +106,11 @@ Mac PR CI는 개인 서명 키 없이 핵심 검사·격리 통합 검사·ad-ho
 자동 검사·앱 빌드·실제 기기·웹 서버 반영은 각각 다른 증거입니다. [검증 기록](VALIDATION.md), [실제 Mac 시험 #4](https://github.com/young221718/happylulu-app/issues/4), [부팅 출근 #13](https://github.com/young221718/happylulu-app/issues/13)에서 완료와 남은 항목을 구분합니다.
 
 변경은 **이슈 → 작업 브랜치 → 검사·독립 검토 → PR → 병합 → 서명·배포 → 실제 응답 확인** 순서로 진행합니다. 개인 기록·키·계정정보와 생성 앱은 Git에 넣지 않습니다.
+
+## 배포는 GitHub, 사이트는 소개
+
+소스·CI·릴리즈 파일·체크섬·서명 업데이트 피드는 GitHub에서 관리합니다. [공식 사이트](https://happylulu.cy-choi-lulu.chatgpt.site/)는 제품 소개·데모와 다운로드 연결에 집중하며 정본은 [site/](site/README.md)에 있습니다. 준비·검증·초안·승격·게시 후 확인은 [DEPLOYMENT.md](DEPLOYMENT.md)를 따릅니다. 개인 서명 키는 제작자 로컬 키체인에 남고 CI가 미검증 서명 앱을 공개하지 않습니다. 기존 Site 피드 주소가 내장된 설치본은 GitHub 피드 버전으로 최초 한 번 수동 교체해야 합니다.
+
+## 라이선스
+
+[HappyLulu Noncommercial Source-Sharing License 1.0](LICENSE)을 적용합니다. **상업적 이용 금지, 코드 수정·재사용 시 결과물 전체의 재빌드 가능한 소스 공개**가 조건입니다. 비공개 실행·네트워크 서비스도 첫 사용 전에 같은 라이선스로 공개해야 하며, 공개했다고 상업적 이용이 허용되는 것은 아닙니다. 개인이 수정 없는 공식 앱으로 자기 출퇴근을 확인하는 것은 직장에서도 허용합니다. 개인 기록·키·인증정보는 공개 대상이 아닙니다. 상업 제한이 있으므로 **OSI 오픈소스가 아닌 소스 공개형**으로 표시합니다. [외부 구성요소](THIRD_PARTY_NOTICES.md)는 각 원래 라이선스를 유지합니다.

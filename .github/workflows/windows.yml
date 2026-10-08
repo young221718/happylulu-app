@@ -4,12 +4,19 @@ on:
   push:
     paths:
       - 'windows/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
       - '.github/workflows/windows.yml'
   pull_request:
     paths:
       - 'windows/**'
+      - 'LICENSE'
+      - 'THIRD_PARTY_NOTICES.md'
       - '.github/workflows/windows.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -28,10 +35,23 @@ jobs:
       - name: Package both Windows builds
         shell: pwsh
         run: |
+          foreach ($flavor in @('self-contained', 'runtime-required')) {
+            Copy-Item LICENSE, THIRD_PARTY_NOTICES.md "dist/windows/$flavor/"
+          }
+          # Preserve the Windows .NET distribution's own license and full notices.
+          $dotnetRoot = Split-Path (Get-Command dotnet).Source -Parent
+          $noticeDir = 'dist/windows/self-contained/licenses/dotnet'
+          New-Item -ItemType Directory -Force $noticeDir | Out-Null
+          foreach ($name in @('LICENSE.txt', 'ThirdPartyNotices.txt')) {
+            $source = Join-Path $dotnetRoot $name
+            if (-not (Test-Path $source)) { throw "Missing bundled .NET notice: $source" }
+            Copy-Item $source $noticeDir
+          }
           Compress-Archive -Path dist/windows/self-contained/* -DestinationPath dist/windows/HappyLulu-1.2.1-windows-x64.zip
           Compress-Archive -Path dist/windows/runtime-required/* -DestinationPath dist/windows/HappyLulu-1.2.1-windows-x64-runtime-required.zip
-          $small = (Get-Item dist/windows/HappyLulu-1.2.1-windows-x64-runtime-required.zip).Length
-          if ($small -ge 25MB) { throw "Runtime-required ZIP must fit the 25 MiB Site asset limit: $small bytes" }
+          Get-FileHash dist/windows/*.zip -Algorithm SHA256 | ForEach-Object {
+            '{0}  {1}' -f $_.Hash.ToLowerInvariant(), (Split-Path $_.Path -Leaf)
+          } | Set-Content -Encoding ascii dist/windows/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: HappyLulu-1.2.1-windows-x64
@@ -40,3 +60,7 @@ jobs:
         with:
           name: HappyLulu-1.2.1-windows-x64-runtime-required
           path: dist/windows/HappyLulu-1.2.1-windows-x64-runtime-required.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HappyLulu-1.2.1-windows-checksums
+          path: dist/windows/SHA256SUMS.txt

@@ -188,3 +188,15 @@ GitHub 이슈 #3은 코드·업데이트 배포, #4는 실제 Mac 시험, #5는 
 - `bash scripts/package-release.sh` 및 `python3 scripts/verify-release.py dist/releases/1.5.10-build24` 통과: Universal 두 아키텍처, 메타데이터·한영 권한 리소스·ZIP/DMG 내용·해시·심볼릭 링크·고정 인증서 서명 대조. 이전 x86_64 CompatibilityPacks 링크 경고는 유지합니다.
 - `bash scripts/generate-update-feed.sh dist/releases/1.5.10-build24/HappyLulu-1.5.10-universal.zip dist/updates-main-build24`로 새 목록을 생성했고 AppUpdateChecks로 ZIP·목록·노트 서명 및 변조 거부, 격리 Sparkle 설정을 검증했습니다. 미게시 build23 후보와 구분합니다.
 - 실제 설치 앱은 build22를 유지합니다. LaunchServices 읽기 전용 진단에서 새 인증서의 캘린더 상태가 아직 notDetermined였고, 예약 실행 후 동기화가 권한 부족으로 일시 중지됐음을 확인했습니다(enabled=false·예약 없음). 이 진단 전후 출근·논리 동기화 문서는 동일합니다. 최초 전체 접근 승인 후 에이전트가 재개·교체·권한 지속을 확인해야 하며, 공개 업데이트 피드는 아직 게시하지 않았습니다.
+
+## 2026-10-08 · GitHub 배포 역할 분리와 라이선스 후보 build25 (#21)
+
+- PR14·19·20을 main에 병합하고 원격 병합 상태를 확인했습니다. GitHub Actions 정의와 로컬 서명·공개 절차를 `DEPLOYMENT.md`에 모았습니다. CI는 비밀키 없는 검사·패키지 artifact만 만들며, 실제 키체인 서명과 공개 승격은 로컬에서 수행합니다.
+- 사이트 정본을 `site/`에 포함하고 소개·시연·GitHub 링크 중심으로 축소했습니다. 로컬 9개 경로의 320/1280px 수평 넘침 없음, 시연 47분·마지막 금요일 15:47, 영어 모바일 메뉴 닫힘을 확인했습니다. `python3 site/check-site.py`, `node --check site/dist/app.js`, 문서 내부 링크와 diff 검사는 통과했습니다. 이 기록 시점의 새 Site 공개·GitHub CI 결과는 별도 원격 확인 대상입니다.
+- 기존 공개 Mac1.5.5 build13과 Windows1.2.1 파일을 동일 바이트로 GitHub Releases에 옮겼습니다. 원래 소스 `4f13945ef927a88e7326647cb4fce3690fd93078`에 태그를 연결하고 공개 HTTP 다운로드와 세 바이너리·두 체크섬 파일의 SHA-256을 대조해 통과했습니다. 기존 바이너리는 재포장하지 않았으며 새 라이선스가 소급 동봉됐다고 주장하지 않습니다.
+- 비상업 이용과 수정·코드 재사용 결과물 전체 소스 공개 조건의 사용자 정의 LICENSE, Sparkle의 실제 배포물 원문 THIRD_PARTY_NOTICES를 추가했습니다. 개인의 공식 무수정 앱 출퇴근 확인은 직장에서도 허용합니다. 이 조건은 OSI 오픈소스 라이선스가 아니며 법적 효력을 검증한 기록이 아닙니다.
+- `HAPPY_LULU_SIGNING_IDENTITY=- bash scripts/package-release.sh`와 `python3 scripts/verify-release.py dist/releases/1.5.10-build25` 통과: Universal 두 아키텍처, ZIP·DMG·앱 리소스의 라이선스/고지, 메타데이터·체크섬·서명 검증. 해당 패키지는 미커밋 소스의 ad-hoc 검증본이며 `dist/validation/adhoc-1.5.10-build25`로 분리했습니다. 공개 후보로 사용하지 않습니다.
+- `swift run --build-system native AppUpdateChecks dist/validation/adhoc-1.5.10-build25/HappyLulu.app --configuration-only` 통과: GitHub 고정 feed와 격리 Sparkle 설정. 셸·YAML·Python 구문, plist 검증 통과. 배포 회귀 검사와 최종 독립 검토 결과는 아래에 추가합니다.
+- 실제 설치는 build22입니다. LaunchServices 읽기 전용 진단은 permission=notDetermined, calendarReadBlocked=true, enabled=false, 예약 없음이며 진단 전후 출근·논리 동기화 문서는 같았습니다. build25 실제 키체인 서명·설치·권한 유지·공개 업데이트 목록 게시와 Windows 사용자 GUI 시험은 미실행입니다.
+- `python3 scripts/check-release-delivery.py` 최종 28/28 PASS. 임시 Ed25519 키의 실제 암호 검증과 변조 거부, 소스·태그 불일치 사전 거부, 업로드 실패 시 이전 목록 복구, 누락·미완료 starter 자산의 동일 후보 재개, 증거·백업 변조 시 원격 쓰기 거부를 검사했습니다. GitHub 장애 경로는 mock이며 실제 서버 장애를 발생시키지 않았습니다.
+- 독립 검토에서 사이트 정본의 ignore 예외, 기존 태그의 다른 commit 연결, feed 실패 복구·미완료 자산 재개를 보완했습니다. 최종 수리 검토에서 남은 차단사항은 없었습니다. 원격 CI·새 Site 공개 결과는 PR와 작업 TODO의 실제 결과로 추적합니다.

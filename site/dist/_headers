@@ -1,0 +1,5 @@
+/updates/appcast.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: no-cache
+/updates/*.zip
+  Cache-Control: public, max-age=31536000, immutable

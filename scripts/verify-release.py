@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+sys.dont_write_bytecode = True
+from release_delivery import checksums, names, safe_file
 root = Path(__file__).resolve().parent.parent
 release = Path(sys.argv[1]).resolve()
 info = plistlib.loads((root / 'Resources/Info.plist').read_bytes())
@@ -15,9 +17,13 @@ assert (release / 'RELEASE-NOTES.md').read_bytes() == (root / 'RELEASE-NOTES.md'
 for language in ('ko', 'en'):
     assert (app / f'Contents/Resources/{language}.lproj/InfoPlist.strings').read_bytes() == (root / f'Resources/{language}.lproj/InfoPlist.strings').read_bytes()
 assert set(subprocess.check_output(['lipo', '-archs', str(app / 'Contents/MacOS/HappyLulu')], text=True).split()) == {'arm64', 'x86_64'}
-for line in (release / 'SHA256SUMS.txt').read_text().splitlines():
-    digest, name = line.split(None, 1)
-    assert hashlib.sha256((release / name.strip()).read_bytes()).hexdigest() == digest
+for name in ('LICENSE', 'THIRD_PARTY_NOTICES.md'):
+    assert safe_file(release, name).read_bytes() == (root / name).read_bytes()
+    assert (app / 'Contents/Resources' / name).read_bytes() == (root / name).read_bytes()
+expected_assets = names(info) if (release / 'release.json').exists() else [
+    f'HappyLulu-{version}-universal.zip', f'HappyLulu-{version}-universal.dmg',
+    'RELEASE-NOTES.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'build-source.json']
+checksums(release, expected_assets)
 
 def manifest(bundle):
     result = {}
@@ -43,6 +49,9 @@ with tempfile.TemporaryDirectory(prefix='verify-release-', dir=root / 'dist') as
     try:
         mounted = mount / 'HappyLulu.app'
         assert manifest(mounted) == expected, 'DMG differs'
+        assert (mount / '시작하기.txt').read_bytes() == (root / 'RELEASE-NOTES.md').read_bytes()
+        for name in ('LICENSE', 'THIRD_PARTY_NOTICES.md'):
+            assert (mount / name).read_bytes() == (root / name).read_bytes()
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(mounted)], check=True)
     finally:
         subprocess.run(['hdiutil', 'detach', str(mount)], check=True, stdout=subprocess.DEVNULL)

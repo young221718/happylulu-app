@@ -81,7 +81,8 @@ let driver = SPUStandardUserDriver(hostBundle: host, delegate: nil)
 let updater = SPUUpdater(hostBundle: host, applicationBundle: host, userDriver: driver, delegate: nil)
 try updater.start()
 require(updater.canCheckForUpdates, "Packaged configuration must start a real Sparkle updater")
-require(updater.feedURL?.scheme == "https", "Production feed must use HTTPS")
+require(updater.feedURL?.absoluteString == "https://github.com/young221718/happylulu-app/releases/download/macos-update-feed/appcast.xml",
+        "Production feed must use the stable GitHub release URL")
 require(!updater.automaticallyChecksForUpdates && !updater.automaticallyDownloadsUpdates,
         "Settings must honor the isolated user preference defaults")
 updater.automaticallyChecksForUpdates = true

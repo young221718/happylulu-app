@@ -2,12 +2,16 @@
 set -euo pipefail
 project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$project_dir"
+for required in LICENSE THIRD_PARTY_NOTICES.md; do
+    test -s "$required" || { printf 'Missing release document: %s\n' "$required" >&2; exit 1; }
+done
 swift build --build-system native -c release --product HappyLulu --disable-local-rpath
 binary_dir="$(swift build --build-system native -c release --show-bin-path)"
 app_dir="$project_dir/dist/HappyLulu.app"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$binary_dir/HappyLulu" "$app_dir/Contents/MacOS/HappyLulu"
 cp Resources/Info.plist "$app_dir/Contents/Info.plist"
+cp LICENSE THIRD_PARTY_NOTICES.md "$app_dir/Contents/Resources/"
 for language in ko en; do
     mkdir -p "$app_dir/Contents/Resources/$language.lproj"
     cp "Resources/$language.lproj/InfoPlist.strings" "$app_dir/Contents/Resources/$language.lproj/InfoPlist.strings"
